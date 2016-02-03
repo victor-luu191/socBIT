@@ -20,8 +20,6 @@ public class GradCalculator {
 
 	private RealMatrix rating_errors;
 	private RealMatrix edge_weight_errors;
-
-	
 	
 	/**
 	 * Construct the calculator of gradients at this set of params. 
@@ -46,13 +44,6 @@ public class GradCalculator {
 		numUser = params.topicUser.getColumnDimension();
 		numItem = params.topicItem.getColumnDimension();
 	}
-	
-	
-	private RealMatrix fillNAs(RealMatrix ratings, RealMatrix estimated_ratings) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 
 	/**
 	 * @param itemIndex
@@ -151,10 +142,39 @@ public class GradCalculator {
 		return nextBrandGrad;
 	}
 	
-	double diffDecisionPref(int userIndex,  Hypers hypers, RealVector ratingErr, RealVector strengthErr) {
+	double diffDecisionPref(int u,  double decisionLambda, double weightLambda) {
 		
-		double decisionPrefDiff = 0;
-		// TODO
+		double userDecisionPref = params.userDecisionPrefs[u];
+		double decisionPrefDiff = decisionLambda * (userDecisionPref - 0.5);
+		
+		RealVector theta_u = params.topicUser.getColumnVector(u);
+		RealVector beta_u = params.brandUser.getColumnVector(u);
+		
+		double rating_sum = 0;
+		for (int i = 0; i < numItem; i++) {
+			RealVector theta_i = params.topicItem.getColumnVector(i);
+			RealVector beta_i = params.brandItem.getColumnVector(i);
+			double topicSim = theta_u.dotProduct(theta_i);
+			double brandSim = beta_u.dotProduct(beta_i);
+			rating_sum += rating_errors.getEntry(u, i) * (topicSim - brandSim);
+		}
+		
+		double edge_weight_sum = 0;
+		for (int v = 0; v < numUser; v++) {
+			RealVector theta_v = params.topicUser.getColumnVector(v);
+			RealVector beta_v = params.brandUser.getColumnVector(v);
+			double topicSim = theta_u.dotProduct(theta_v);
+			double brandSim = beta_u.dotProduct(beta_v);
+			edge_weight_sum += edge_weight_errors.getEntry(u, v) * (topicSim - brandSim);
+		}
+		
+		double bigSum = rating_sum + weightLambda * edge_weight_sum;
+		decisionPrefDiff = decisionPrefDiff - bigSum;
 		return decisionPrefDiff;
+	}
+	
+	RealMatrix fillNAs(RealMatrix mat, RealMatrix estimated_values) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
