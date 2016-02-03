@@ -126,7 +126,7 @@ public class GradCalculator {
 		return nextTopicGrad;
 	}
 	
-	RealVector userBrandGrad(int u,  double brandLambda, RealVector ratingErr, RealVector strengthErr, double weightLambda) {
+	RealVector userBrandGrad(int u,  double brandLambda, double weightLambda) {
 		
 		RealVector curBrandGrad = params.brandUser.getColumnVector(u);
 		RealVector nextBrandGrad = curBrandGrad.mapMultiply(brandLambda);
