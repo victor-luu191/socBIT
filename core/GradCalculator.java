@@ -57,8 +57,8 @@ public class GradCalculator {
 		// gradients for users
 		for (int u = 0; u < numUser; u++) {
 			grad.userDecisionPrefs[u] = userDecisionPrefDiff(params, u, rating_errors, edge_weight_errors);
-			grad.topicUser.setColumnVector(u, userTopicGrad(u, hypers.topicLambda, hypers.weightLambda));
-			grad.brandUser.setColumnVector(u, userBrandGrad(u, hypers.brandLambda, hypers.weightLambda));
+			grad.topicUser.setColumnVector(u, userTopicGrad(params, u, rating_errors, edge_weight_errors));
+			grad.brandUser.setColumnVector(u, userBrandGrad(params, u, rating_errors, edge_weight_errors));
 		}
 		
 		// gradients for items
@@ -137,8 +137,10 @@ public class GradCalculator {
 	 * @param strengthErr: errors in estimating strength of relationships of the user 
 	 * @return
 	 */
-	RealVector userTopicGrad(int u,  double topicLambda, double weightLambda) {
+	RealVector userTopicGrad(Parameters params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
+		
 		RealVector curTopicGrad = params.topicUser.getColumnVector(u);
+		double topicLambda = hypers.topicLambda;
 		RealVector nextTopicGrad = curTopicGrad.mapMultiply(topicLambda);
 		// component wrt rating errors
 		RealVector rating_sum = new ArrayRealVector(numTopic);
@@ -156,14 +158,16 @@ public class GradCalculator {
 			
 		}
 		
+		double weightLambda = hypers.weightLambda;
 		RealVector bigSum = rating_sum.add(edge_weight_sum.mapMultiply(weightLambda));
 		nextTopicGrad = nextTopicGrad.subtract(bigSum.mapMultiply(params.userDecisionPrefs[u])); 	// see Eqn. 26
 		return nextTopicGrad;
 	}
 	
-	RealVector userBrandGrad(int u,  double brandLambda, double weightLambda) {
+	RealVector userBrandGrad(Parameters params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
 		
 		RealVector curBrandGrad = params.brandUser.getColumnVector(u);
+		double brandLambda = hypers.brandLambda;
 		RealVector nextBrandGrad = curBrandGrad.mapMultiply(brandLambda);
 		// component wrt rating errors
 		RealVector rating_sum = new ArrayRealVector(numBrand);
@@ -181,6 +185,7 @@ public class GradCalculator {
 			edge_weight_sum = edge_weight_sum.add(modified_BrandFeat);
 		}
 		
+		double weightLambda = hypers.weightLambda;
 		RealVector bigSum = rating_sum.add(edge_weight_sum.mapMultiply(weightLambda));
 		nextBrandGrad = nextBrandGrad.subtract(bigSum.mapMultiply(1 - params.userDecisionPrefs[u]));	// see Eqn. 27
 		return nextBrandGrad;
