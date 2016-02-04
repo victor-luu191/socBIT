@@ -42,4 +42,14 @@ public class Parameters {
 		topicItem = new Array2DRowRealMatrix(numTopic, numItem);
 		brandItem = new Array2DRowRealMatrix(numBrand, numItem);
 	}
+
+	public Parameters(Parameters params) {
+		
+		userDecisionPrefs = params.userDecisionPrefs;
+		topicUser = params.topicUser;
+		brandUser = params.brandUser;
+		
+		topicItem = params.topicItem;
+		brandItem = params.brandItem;
+	}
 }
