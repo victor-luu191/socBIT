@@ -17,18 +17,11 @@ public class GradCalculator {
 	private int numItem;
 	
 	Dataset ds;
-	/**
-	 * Construct the calculator of gradients at this set of params. 
-	 * The gradients aim to improve estimations to observed ratings and weights 
-	 * @param params
-	 * @param ratings
-	 * @param edge_weights
-	 */
+	
 	public GradCalculator(GD_Trainer trainer) {
 		
 		numTopic = trainer.numTopic;
 		getDims(ds);
-		
 	}
 
 	private void getDims(Dataset ds) {
@@ -37,14 +30,20 @@ public class GradCalculator {
 		numItem = ds.numItem;
 	}
 	
+	/**
+	 * Main work is here !!!
+	 * Compute the gradient at a given set of params, by computing all the components of the gradient
+	 * @param params
+	 * @return the complete gradient with all its components
+	 */
 	Parameters calGrad(Parameters params) {
 		
 		Estimator estimator = new Estimator(params);
 		RealMatrix estimated_ratings = estimator.estRatings();
 		RealMatrix estimated_weights = estimator.estWeights();
 		
-		RealMatrix edge_weight_errors = compEdgeWeightError(estimated_weights);
-		RealMatrix rating_errors = compRatingErrors(estimated_ratings);
+		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(estimated_weights, ds.edge_weights);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(estimated_ratings, ds.ratings);
 		
 		Parameters grad = new Parameters(numUser, numItem, numTopic, numBrand);
 		// gradients for users
@@ -61,23 +60,6 @@ public class GradCalculator {
 		}
 		
 		return grad;
-	}
-
-	private RealMatrix compRatingErrors(RealMatrix estimated_ratings) {
-		// XXX: many ratings r_{u,i} are missing as u may not rate i. Again we should exclude the errors from these missing ratings by  
-		// similar trick i.e. force the missing ratings equal to estimated values (so that the errors vanish)  
-		ds.ratings = fillNAs(ds.ratings, estimated_ratings);
-		RealMatrix rating_errors = ds.ratings.subtract(estimated_ratings);
-		return rating_errors;
-	}
-
-	private RealMatrix compEdgeWeightError(RealMatrix estimated_weights) {
-		// as w_{u, u}'s do NOT exist, we need to exclude errors due to estimating them by the following trick 
-		for (int u = 0; u < numUser; u++) {
-			ds.edge_weights.setEntry(u, u, estimated_weights.getEntry(u, u));	  
-		}
-		RealMatrix edge_weight_errors = ds.edge_weights.subtract(estimated_weights);
-		return edge_weight_errors;
 	}
 
 	/**
