@@ -10,20 +10,13 @@ import defs.Hypers;
 public class GradCalculator {
 	
 	private Hypers hypers;
-	private Parameters params;
-	
 	// derived fields
 	private int numTopic;
 	private int numBrand;
 	private int numUser;
 	private int numItem;
 	
-	private Estimator estimator;
-
 	Dataset ds;
-	private RealMatrix rating_errors;
-	private RealMatrix edge_weight_errors;
-	
 	/**
 	 * Construct the calculator of gradients at this set of params. 
 	 * The gradients aim to improve estimations to observed ratings and weights 
@@ -46,7 +39,7 @@ public class GradCalculator {
 	
 	Parameters calGrad(Parameters params) {
 		
-		estimator = new Estimator(params);
+		Estimator estimator = new Estimator(params);
 		RealMatrix estimated_ratings = estimator.estRatings();
 		RealMatrix estimated_weights = estimator.estWeights();
 		
