@@ -4,8 +4,6 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
-import defs.Hypers;
-
 public class GradCalculator {
 	
 	private Parameters params;
@@ -31,11 +29,16 @@ public class GradCalculator {
 	public GradCalculator(Parameters params, RealMatrix ratings, RealMatrix edge_weights) {
 		estimator = new Estimator(params);
 		RealMatrix estimated_ratings = estimator.estRatings();
-		RealMatrix estimated_weights = estimator.estWeights();
 		
+		RealMatrix estimated_weights = estimator.estWeights();
+		// as w_{u, u}'s do NOT exist, we need to exclude errors due to estimating them by the following trick 
+		for (int u = 0; u < numUser; u++) {
+			edge_weights.setEntry(u, u, estimated_weights.getEntry(u, u));	  
+		}
 		edge_weight_errors = edge_weights.subtract(estimated_weights);
-		// XXX: some ratings r_{u,i} are NAs as u may not rate i. 
-		// Thus, 1st thing to do is to fill in the ratings by estimated values  
+		
+		// XXX: many ratings r_{u,i} are missing as u may not rate i. Again we should exclude the errors from these missing ratings by  
+		// similar trick i.e. force the missing ratings equal to estimated values (so that the errors vanish)  
 		ratings = fillNAs(ratings, estimated_ratings);
 		rating_errors = ratings.subtract(estimated_ratings);
 		
@@ -173,8 +176,20 @@ public class GradCalculator {
 		return decisionPrefDiff;
 	}
 	
+	/**
+	 * NAs in {@link mat} are marked by some invalid value i.e. null, 
+	 * in the case of rating, we use -1 as marker 
+	 */
 	RealMatrix fillNAs(RealMatrix mat, RealMatrix estimated_values) {
 		// TODO Auto-generated method stub
-		return null;
+		RealMatrix filled_mat = mat;
+		for (int i = 0; i < mat.getRowDimension(); i++) {
+			for (int j = 0; j < mat.getColumnDimension(); j++) {
+				if (filled_mat.getEntry(i, j) == -1) {
+					filled_mat.setEntry(i, j, estimated_values.getEntry(i, j));
+				}
+			}
+		}
+		return filled_mat;
 	}
 }
