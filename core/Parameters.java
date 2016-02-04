@@ -24,6 +24,13 @@ public class Parameters {
 	// if a brand b does not produce an item i then the entry (i,b) is simply 0 
 	RealMatrix brandItem;	
 	
+	/**
+	 * return default params with correct {@link dimensions}
+	 * @param numUser
+	 * @param numItem
+	 * @param numTopic
+	 * @param numBrand
+	 */
 	public Parameters(int numUser, int numItem, int numTopic, int numBrand) {
 		
 		topicUser = new Array2DRowRealMatrix(numTopic, numUser);

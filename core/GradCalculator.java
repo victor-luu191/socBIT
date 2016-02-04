@@ -4,8 +4,11 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
+import defs.Hypers;
+
 public class GradCalculator {
 	
+	private Hypers hypers;
 	private Parameters params;
 	
 	// derived fields
@@ -46,6 +49,25 @@ public class GradCalculator {
 		numBrand = params.brandItem.getRowDimension();
 		numUser = params.topicUser.getColumnDimension();
 		numItem = params.topicItem.getColumnDimension();
+	}
+	
+	Parameters calGrad(Parameters params, RealMatrix ratings, RealMatrix edge_weights) {
+		
+		Parameters grad = new Parameters(numUser, numItem, numTopic, numBrand);
+		// gradients for users
+		for (int u = 0; u < numUser; u++) {
+			grad.userDecisionPrefs[u] = diffDecisionPref(u, hypers.decisionLambda, hypers.weightLambda);
+			grad.topicUser.setColumnVector(u, userTopicGrad(u, hypers.topicLambda, hypers.weightLambda));
+			grad.brandUser.setColumnVector(u, userBrandGrad(u, hypers.brandLambda, hypers.weightLambda));
+		}
+		
+		// gradients for items
+		for (int i = 0; i < numItem; i++) {
+			grad.topicItem.setColumnVector(i, itemTopicGrad(i, hypers.topicLambda));
+			grad.brandItem.setColumnVector(i, itemBrandGrad(i, hypers.brandLambda));
+		}
+		
+		return grad;
 	}
 
 	/**

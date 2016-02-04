@@ -2,10 +2,10 @@ package defs;
 
 public class Hypers {
 	
-	double topicLambda; 
-	double brandLambda;
-	double weightLambda;
-	double decisionLambda;
+	public double topicLambda; 
+	public double brandLambda;
+	public double weightLambda;
+	public double decisionLambda;
 	
 	public Hypers(double topicLambda, double brandLambda, double weightLambda, double decisionLambda) {
 		super();
