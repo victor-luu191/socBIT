@@ -4,6 +4,7 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
+import defs.Dataset;
 import defs.Hypers;
 
 public class GradCalculator {
@@ -19,6 +20,7 @@ public class GradCalculator {
 	
 	private Estimator estimator;
 
+	Dataset ds;
 	private RealMatrix rating_errors;
 	private RealMatrix edge_weight_errors;
 	
@@ -29,34 +31,32 @@ public class GradCalculator {
 	 * @param ratings
 	 * @param edge_weights
 	 */
-	public GradCalculator(Parameters params, RealMatrix ratings, RealMatrix edge_weights) {
-		estimator = new Estimator(params);
-		RealMatrix estimated_ratings = estimator.estRatings();
+	public GradCalculator(GD_Trainer trainer) {
 		
-		RealMatrix estimated_weights = estimator.estWeights();
-		// as w_{u, u}'s do NOT exist, we need to exclude errors due to estimating them by the following trick 
-		for (int u = 0; u < numUser; u++) {
-			edge_weights.setEntry(u, u, estimated_weights.getEntry(u, u));	  
-		}
-		edge_weight_errors = edge_weights.subtract(estimated_weights);
+		numTopic = trainer.numTopic;
+		getDims(ds);
 		
-		// XXX: many ratings r_{u,i} are missing as u may not rate i. Again we should exclude the errors from these missing ratings by  
-		// similar trick i.e. force the missing ratings equal to estimated values (so that the errors vanish)  
-		ratings = fillNAs(ratings, estimated_ratings);
-		rating_errors = ratings.subtract(estimated_ratings);
-		
-		numTopic = params.topicItem.getRowDimension();
-		numBrand = params.brandItem.getRowDimension();
-		numUser = params.topicUser.getColumnDimension();
-		numItem = params.topicItem.getColumnDimension();
+	}
+
+	private void getDims(Dataset ds) {
+		numBrand = ds.numBrand;
+		numUser = ds.numUser;
+		numItem = ds.numItem;
 	}
 	
-	Parameters calGrad(Parameters params, RealMatrix ratings, RealMatrix edge_weights) {
+	Parameters calGrad(Parameters params) {
+		
+		estimator = new Estimator(params);
+		RealMatrix estimated_ratings = estimator.estRatings();
+		RealMatrix estimated_weights = estimator.estWeights();
+		
+		RealMatrix edge_weight_errors = compEdgeWeightError(estimated_weights);
+		RealMatrix rating_errors = compRatingErrors(estimated_ratings);
 		
 		Parameters grad = new Parameters(numUser, numItem, numTopic, numBrand);
 		// gradients for users
 		for (int u = 0; u < numUser; u++) {
-			grad.userDecisionPrefs[u] = diffDecisionPref(u, hypers.decisionLambda, hypers.weightLambda);
+			grad.userDecisionPrefs[u] = diffDecisionPref(u, rating_errors, edge_weight_errors);
 			grad.topicUser.setColumnVector(u, userTopicGrad(u, hypers.topicLambda, hypers.weightLambda));
 			grad.brandUser.setColumnVector(u, userBrandGrad(u, hypers.brandLambda, hypers.weightLambda));
 		}
@@ -68,6 +68,23 @@ public class GradCalculator {
 		}
 		
 		return grad;
+	}
+
+	private RealMatrix compRatingErrors(RealMatrix estimated_ratings) {
+		// XXX: many ratings r_{u,i} are missing as u may not rate i. Again we should exclude the errors from these missing ratings by  
+		// similar trick i.e. force the missing ratings equal to estimated values (so that the errors vanish)  
+		ds.ratings = fillNAs(ds.ratings, estimated_ratings);
+		RealMatrix rating_errors = ds.ratings.subtract(estimated_ratings);
+		return rating_errors;
+	}
+
+	private RealMatrix compEdgeWeightError(RealMatrix estimated_weights) {
+		// as w_{u, u}'s do NOT exist, we need to exclude errors due to estimating them by the following trick 
+		for (int u = 0; u < numUser; u++) {
+			ds.edge_weights.setEntry(u, u, estimated_weights.getEntry(u, u));	  
+		}
+		RealMatrix edge_weight_errors = ds.edge_weights.subtract(estimated_weights);
+		return edge_weight_errors;
 	}
 
 	/**
@@ -167,9 +184,10 @@ public class GradCalculator {
 		return nextBrandGrad;
 	}
 	
-	double diffDecisionPref(int u,  double decisionLambda, double weightLambda) {
+	double diffDecisionPref(int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
 		
 		double userDecisionPref = params.userDecisionPrefs[u];
+		double decisionLambda = hypers.decisionLambda;
 		double decisionPrefDiff = decisionLambda * (userDecisionPref - 0.5);
 		
 		RealVector theta_u = params.topicUser.getColumnVector(u);
@@ -193,6 +211,7 @@ public class GradCalculator {
 			edge_weight_sum += edge_weight_errors.getEntry(u, v) * (topicSim - brandSim);
 		}
 		
+		double weightLambda = hypers.weightLambda;
 		double bigSum = rating_sum + weightLambda * edge_weight_sum;
 		decisionPrefDiff = decisionPrefDiff - bigSum;
 		return decisionPrefDiff;

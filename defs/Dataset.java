@@ -5,13 +5,13 @@ import org.apache.commons.math3.linear.RealMatrix;
 
 public class Dataset {
 	
-	RealMatrix ratings;		// user-item
-	RealMatrix edge_weights;	// user-user square matrix, for any two unconnected users the weight is 0
-	int numBrand;
+	public RealMatrix ratings;		// user-item
+	public RealMatrix edge_weights;	// user-user square matrix, for any two unconnected users the weight is 0
 	
 	// derived fields
-	int numUser;
-	int numItem;
+	public int numUser;
+	public int numItem;
+	public int numBrand;
 	
 	/**
 	 * Precond: {@code edge_weight} is a square matrix and {@code nrow(edge_weight) = nrow(rating)} 
