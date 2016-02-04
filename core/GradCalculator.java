@@ -56,15 +56,15 @@ public class GradCalculator {
 		Parameters grad = new Parameters(numUser, numItem, numTopic, numBrand);
 		// gradients for users
 		for (int u = 0; u < numUser; u++) {
-			grad.userDecisionPrefs[u] = diffDecisionPref(u, rating_errors, edge_weight_errors);
+			grad.userDecisionPrefs[u] = userDecisionPrefDiff(params, u, rating_errors, edge_weight_errors);
 			grad.topicUser.setColumnVector(u, userTopicGrad(u, hypers.topicLambda, hypers.weightLambda));
 			grad.brandUser.setColumnVector(u, userBrandGrad(u, hypers.brandLambda, hypers.weightLambda));
 		}
 		
 		// gradients for items
 		for (int i = 0; i < numItem; i++) {
-			grad.topicItem.setColumnVector(i, itemTopicGrad(i, hypers.topicLambda));
-			grad.brandItem.setColumnVector(i, itemBrandGrad(i, hypers.brandLambda));
+			grad.topicItem.setColumnVector(i, itemTopicGrad(params, i, rating_errors));
+			grad.brandItem.setColumnVector(i, itemBrandGrad(params, i, rating_errors));
 		}
 		
 		return grad;
@@ -94,9 +94,10 @@ public class GradCalculator {
 	 * @param ratingErr: errors of estimating ratings of the item
 	 * @return
 	 */
-	RealVector itemTopicGrad(int itemIndex,  double topicLambda) {
+	RealVector itemTopicGrad(Parameters params, int itemIndex, RealMatrix rating_errors) {
 		
 		RealVector curTopicGrad = params.topicItem.getRowVector(itemIndex);
+		double topicLambda = hypers.topicLambda;
 		RealVector nextTopicGrad = curTopicGrad.mapMultiply(topicLambda);
 		
 		RealVector sum = new ArrayRealVector(numTopic);
@@ -110,9 +111,10 @@ public class GradCalculator {
 		return nextTopicGrad;
 	}
 	
-	RealVector itemBrandGrad(int itemIndex,  double brandLambda) {
+	RealVector itemBrandGrad(Parameters params, int itemIndex, RealMatrix rating_errors) {
 		
 		RealVector curBrandGrad = params.brandItem.getColumnVector(itemIndex);
+		double brandLambda = hypers.brandLambda;
 		RealVector nextBrandGrad = curBrandGrad.mapMultiply(brandLambda);
 		
 		RealVector sum = new ArrayRealVector(numBrand);
@@ -184,7 +186,7 @@ public class GradCalculator {
 		return nextBrandGrad;
 	}
 	
-	double diffDecisionPref(int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
+	double userDecisionPrefDiff(Parameters params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
 		
 		double userDecisionPref = params.userDecisionPrefs[u];
 		double decisionLambda = hypers.decisionLambda;
