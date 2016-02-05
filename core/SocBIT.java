@@ -1,6 +1,14 @@
 package core;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.RealMatrix;
 
 import defs.Dataset;
 import defs.Hypers;
@@ -63,9 +71,65 @@ public class SocBIT {
 		
 	}
 
-	private static Dataset loadData(String dir) {
+	private static Dataset loadData(String dir) throws IOException {
+		
+		RealMatrix ratings = loadRatings(dir + "ratings.csv");
+		RealMatrix edge_weights = loadEdgeWeights(dir + "edge_weights.csv");
+		return new Dataset(ratings, edge_weights);
+	}
+
+	// read edge weights from the file and fill in 0s for user pairs with no connection
+	private static RealMatrix loadEdgeWeights(String fname) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	private static RealMatrix loadRatings(String fname) throws IOException {
+		// TODO Auto-generated method stub
+		int maxNumUser = 1000;
+		int maxNumItem = 100000;
+		RealMatrix ratings = new Array2DRowRealMatrix(maxNumUser, maxNumItem);
+		
+		int numItem = 0;
+		Map<String, Integer> itemMap = new HashMap<String, Integer>();
+		int numUser = 0;
+		Map<String, Integer> userMap = new HashMap<String, Integer>();
+		
+		BufferedReader reader = new BufferedReader(new FileReader(fname));
+		
+		String line;
+		while ((line = reader.readLine()) != null) {
+			String[] fields = line.split(",");
+			String uid = fields[0];
+			String itemId = fields[1];
+			double r = Double.valueOf(fields[2]);
+			
+			int userIndex = lookUpIndex(uid, userMap, numUser);
+			int itemIndex = lookUpIndex(itemId, itemMap, numItem);
+			ratings.setEntry(userIndex, itemIndex, r);
+		}
+		
+		reader.close();
+		ratings = ratings.getSubMatrix(1, numUser, 1, numItem);
+		return ratings;
+	}
+	
+	/**
+	 * Look up the index corresponding to the given {@link id} if {@link id} can be found in the map {@link id2Index}, 
+	 * Otherwise add the {@link id} to the map and increment the map {@link size} 
+	 * @param id
+	 * @param id2Index
+	 * @param size
+	 * @return
+	 */
+	private static int lookUpIndex(String id, Map<String, Integer> id2Index, int size) {
+		
+		if (id2Index.containsKey(id)) {
+			return id2Index.get(id);
+		} else {
+			size ++;
+			id2Index.put(id, size);
+			return size;
+		}
 	}
 
 }
