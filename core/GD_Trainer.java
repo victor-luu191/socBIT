@@ -1,5 +1,9 @@
 package core;
 
+import java.io.IOException;
+
+import myUtil.Savers;
+
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
@@ -20,19 +24,32 @@ public class GD_Trainer {
 	private int maxIter;
 	private double stepSize;
 	
+	public GD_Trainer(Dataset ds, int numTopic, Hypers hypers, int maxIter) {
+		this.ds = ds;
+		this.numTopic = numTopic;
+		this.hypers = hypers;
+		this.maxIter = maxIter;
+		stepSize = 1/ALPHA;
+	}
+	
 	/**
-	 * 
 	 * @param initParams
 	 * @param resDir
 	 * @return local optimal parameters which give a local minimum of the objective function (minimum errors + regularizers)
+	 * @throws IOException 
 	 */
-	Parameters gradDescent(Parameters initParams, String resDir) {
+	Parameters gradDescent(Parameters initParams, String resDir) throws IOException {
 		
 		// TODO Auto-generated method stub
+		
+		int numIter = 0;
 		Parameters cParams = new Parameters(initParams);
 		double cValue = objValue(initParams);
 		double difference = Double.POSITIVE_INFINITY;
-		int numIter = 0;
+		
+//		StringBuilder sbParams = new StringBuilder("iter, ...");
+		StringBuilder sbObjValue = new StringBuilder("iter, obj_value \n");
+		sbObjValue = sbObjValue.append(numIter + "," + cValue + "\n");
 		
 		GradCalculator gradCal = new GradCalculator(this);
 		// while not convergence and still can try more
@@ -41,19 +58,21 @@ public class GD_Trainer {
 			Parameters cGrad = gradCal.calGrad(cParams);
 			Parameters nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = objValue(nParams);
-			
+			sbObjValue = sbObjValue.append(numIter + "," + nValue + "\n");
 			difference = nValue - cValue;
+			
 			// prep for next iter
 			cParams = new Parameters(nParams);						
 			cValue = nValue;
 		}
 		
+		String fout = resDir + "obj_values.csv";
+		Savers.save(sbObjValue.toString(), fout);
 		return cParams;
 	}
 	
 	private Parameters lineSearch(Parameters cParams, Parameters cGrad, double cValue) {
 		
-		stepSize = 1/ALPHA;
 		Parameters nParams = new Parameters(cParams);
 		boolean sufficentReduction = false;
 		
@@ -80,19 +99,6 @@ public class GD_Trainer {
 					+ "Line search stopped due to step size too small");
 			return cParams;
 		}
-	}
-
-	private double sqDiff(Parameters p1, Parameters p2) {
-		
-		double sq_diff = square(p1.topicUser.subtract(p2.topicUser).getFrobeniusNorm());
-		sq_diff += square(p1.topicItem.subtract(p2.topicItem).getFrobeniusNorm());
-		sq_diff += square(p1.brandUser.subtract(p2.brandUser).getFrobeniusNorm());
-		sq_diff += square(p1.brandItem.subtract(p2.brandItem).getFrobeniusNorm());
-		for (int u = 0; u < ds.numUser; u++) {
-			sq_diff += square(p1.userDecisionPrefs[u] - p2.userDecisionPrefs[u]);
-		}
-		
-		return sq_diff;
 	}
 
 	private Parameters update(Parameters cParams, double stepSize, Parameters cGrad) {
@@ -149,7 +155,20 @@ public class GD_Trainer {
 		return val;
 	}
 	
-	double square(double d) {
+	private double sqDiff(Parameters p1, Parameters p2) {
+
+		double sq_diff = square(p1.topicUser.subtract(p2.topicUser).getFrobeniusNorm());
+		sq_diff += square(p1.topicItem.subtract(p2.topicItem).getFrobeniusNorm());
+		sq_diff += square(p1.brandUser.subtract(p2.brandUser).getFrobeniusNorm());
+		sq_diff += square(p1.brandItem.subtract(p2.brandItem).getFrobeniusNorm());
+		for (int u = 0; u < ds.numUser; u++) {
+			sq_diff += square(p1.userDecisionPrefs[u] - p2.userDecisionPrefs[u]);
+		}
+
+		return sq_diff;
+	}
+	
+	private double square(double d) {
 		return Math.pow(d, 2);
 	}
 }
