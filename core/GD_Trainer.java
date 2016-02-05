@@ -96,16 +96,37 @@ public class GD_Trainer {
 	}
 
 	private Parameters update(Parameters cParams, double stepSize, Parameters cGrad) {
-		// TODO Auto-generated method stub
+		
 		Parameters nParams = new Parameters(ds.numUser, ds.numItem, numTopic, ds.numBrand);
 		for (int u = 0; u < ds.numUser; u++) {
+			// user decision pref
+			nParams.userDecisionPrefs[u] = cParams.userDecisionPrefs[u] - stepSize * cGrad.userDecisionPrefs[u];
+			// topic component
 			RealVector curTopicFeat = cParams.topicUser.getColumnVector(u);
-			RealVector descentGrad = cGrad.topicUser.getColumnVector(u).mapMultiply(-stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(descentGrad);
+			RealVector topicDescent = cGrad.topicUser.getColumnVector(u).mapMultiply( -stepSize);
+			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
 			nParams.topicUser.setColumnVector(u, nextTopicFeat);
+			// brand component
+			RealVector curBrandFeat = cParams.brandUser.getColumnVector(u);
+			RealVector brandDescent = cGrad.brandUser.getColumnVector(u).mapMultiply(-stepSize);
+			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
+			nParams.brandUser.setColumnVector(u, nextBrandFeat);
 		}
 		
-		return null;
+		for (int i = 0; i < ds.numItem; i++) {
+			// topic component
+			RealVector curTopicFeat = cParams.topicItem.getColumnVector(i);
+			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
+			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
+			nParams.topicItem.setColumnVector(i, nextTopicFeat);
+			// brand component
+			RealVector curBrandFeat = cParams.brandItem.getColumnVector(i);
+			RealVector brandDescent = cGrad.brandItem.getColumnVector(i).mapMultiply(-stepSize);
+			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
+			nParams.brandItem.setColumnVector(i, nextBrandFeat);
+		}
+		
+		return nParams;
 	}
 
 	private double objValue(Parameters params) {
