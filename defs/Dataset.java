@@ -15,25 +15,25 @@ public class Dataset {
 	
 	/**
 	 * Precond: {@code edge_weight} is a square matrix and {@code nrow(edge_weight) = nrow(rating)} 
-	 * @param rating
-	 * @param edge_weight
+	 * @param ratings
+	 * @param edge_weights
 	 */
-	public Dataset(RealMatrix rating, RealMatrix edge_weight) {
+	public Dataset(RealMatrix ratings, RealMatrix edge_weights) {
 		
 		super();
 		
-		if (! edge_weight.isSquare()) {
+		if (! edge_weights.isSquare()) {
 			System.out.println("the edge weight matrix is NOT square!!!");
-			throw new NonSquareMatrixException(edge_weight.getColumnDimension(), edge_weight.getRowDimension());
+			throw new NonSquareMatrixException(edge_weights.getColumnDimension(), edge_weights.getRowDimension());
 		} else {
-			if (edge_weight.getRowDimension() != rating.getRowDimension()) {
+			if (edge_weights.getRowDimension() != ratings.getRowDimension()) {
 				System.out.println("The edge weight matrix and the rating matrix must have the same number of rows "
 									+ "(the number of users)");
 			} else {
-				this.ratings = rating;
-				this.edge_weights = edge_weight;
-				numUser = rating.getRowDimension();
-				numItem = rating.getColumnDimension();
+				this.ratings = ratings;
+				this.edge_weights = edge_weights;
+				numUser = ratings.getRowDimension();
+				numItem = ratings.getColumnDimension();
 			}
 		}
 	}
