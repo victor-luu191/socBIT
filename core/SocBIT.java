@@ -15,8 +15,12 @@ import defs.Hypers;
 
 public class SocBIT {
 
+	private static int maxNumUser = 1000;
+	private static int maxNumItem = 100000;
+	
 	static Dataset train_ds;
 	static Dataset test_ds;
+	
 	
 	public static void main(String[] args) throws IOException {
 		
@@ -79,14 +83,30 @@ public class SocBIT {
 	}
 
 	// read edge weights from the file and fill in 0s for user pairs with no connection
-	private static RealMatrix loadEdgeWeights(String fname) {
-		// TODO Auto-generated method stub
-		return null;
+	private static RealMatrix loadEdgeWeights(String fname) throws NumberFormatException, IOException {
+		
+		RealMatrix edge_weights = new Array2DRowRealMatrix(maxNumUser, maxNumUser);
+		int numUser = 0;
+		Map<String, Integer> userMap = new HashMap<String, Integer>();
+		
+		BufferedReader reader = new BufferedReader(new FileReader(fname));
+		String line;
+		while ((line = reader.readLine()) != null) {
+			String[] fields = line.split(",");
+			String uid = fields[0];
+			String vid = fields[1];
+			double weight = Double.valueOf(fields[2]);
+			
+			int uIndex = lookUpIndex(uid, userMap, numUser);
+			int vIndex = lookUpIndex(vid, userMap, numUser);
+			edge_weights.setEntry(uIndex, vIndex, weight);
+		}
+		reader.close();
+		
+		edge_weights = edge_weights.getSubMatrix(1, numUser, 1, numUser);	// rm redundant rows and cols
+		return edge_weights;
 	}
 	private static RealMatrix loadRatings(String fname) throws IOException {
-		// TODO Auto-generated method stub
-		int maxNumUser = 1000;
-		int maxNumItem = 100000;
 		RealMatrix ratings = new Array2DRowRealMatrix(maxNumUser, maxNumItem);
 		
 		int numItem = 0;
@@ -95,7 +115,6 @@ public class SocBIT {
 		Map<String, Integer> userMap = new HashMap<String, Integer>();
 		
 		BufferedReader reader = new BufferedReader(new FileReader(fname));
-		
 		String line;
 		while ((line = reader.readLine()) != null) {
 			String[] fields = line.split(",");
@@ -109,7 +128,7 @@ public class SocBIT {
 		}
 		
 		reader.close();
-		ratings = ratings.getSubMatrix(1, numUser, 1, numItem);
+		ratings = ratings.getSubMatrix(1, numUser, 1, numItem);		// rm redundant rows and cols
 		return ratings;
 	}
 	
