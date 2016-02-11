@@ -3,7 +3,9 @@ package core;
 import java.util.Arrays;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 public class Parameters {
 	
@@ -31,16 +33,56 @@ public class Parameters {
 	 */
 	public Parameters(int numUser, int numItem, int numTopic, int numBrand) {
 		
-		topicUser = new Array2DRowRealMatrix(numTopic, numUser);
-		brandUser = new Array2DRowRealMatrix(numBrand, numUser);
+		initUserTopicFeats(numUser, numTopic);
+		initUserBrandFeats(numUser, numBrand);
+		initItemTopicFeats(numItem, numTopic);
+		initItemBrandFeats(numItem, numBrand);
 		
 		userDecisionPrefs = new double[numUser];
 		// as we expect that most users are neutral, neither brand-based nor topic-based extreme, 
 		// we initialize all decision prefs as 0.5
 		Arrays.fill(userDecisionPrefs, 0.5);	
-		
-		topicItem = new Array2DRowRealMatrix(numTopic, numItem);
+	}
+
+	private void initItemBrandFeats(int numItem, int numBrand) {
 		brandItem = new Array2DRowRealMatrix(numBrand, numItem);
+		RealVector unitVector = unitVector(numBrand);
+		for (int i = 0; i < numItem; i++) {
+			brandItem.setColumnVector(i, unitVector);
+		}
+	}
+
+	private void initItemTopicFeats(int numItem, int numTopic) {
+		topicItem = new Array2DRowRealMatrix(numTopic, numItem);
+		RealVector unitVector = unitVector(numTopic);
+		for (int i = 0; i < numItem; i++) {
+			topicItem.setColumnVector(i, unitVector);
+		}
+	}
+
+	private void initUserBrandFeats(int numUser, int numBrand) {
+		brandUser = new Array2DRowRealMatrix(numBrand, numUser);
+		RealVector unitVector = unitVector(numBrand);
+		for (int u = 0; u < numUser; u++) {
+			brandUser.setColumnVector(u, unitVector);
+		}
+	}
+
+	private void initUserTopicFeats(int numUser, int numTopic) {
+		topicUser = new Array2DRowRealMatrix(numTopic, numUser);
+		RealVector unitVector = unitVector(numTopic);
+		for (int u = 0; u < numUser; u++) {
+			topicUser.setColumnVector(u, unitVector);
+		}
+	}
+
+	private RealVector unitVector(int size) {
+		RealVector unitVector = new ArrayRealVector(size);
+		unitVector.setEntry(0, 1);
+		for (int k = 1; k < size; k++) {
+			unitVector.setEntry(k, 0);
+		}
+		return unitVector;
 	}
 
 	public Parameters(Parameters params) {

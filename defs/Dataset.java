@@ -18,7 +18,7 @@ public class Dataset {
 	 * @param ratings
 	 * @param edge_weights
 	 */
-	public Dataset(RealMatrix ratings, RealMatrix edge_weights) {
+	public Dataset(RealMatrix ratings, RealMatrix edge_weights, int numBrand) {// String itemInfo
 		
 		super();
 		
@@ -34,6 +34,8 @@ public class Dataset {
 				this.edge_weights = edge_weights;
 				numUser = ratings.getRowDimension();
 				numItem = ratings.getColumnDimension();
+				this.numBrand = numBrand; 
+//				numBrand = getNumBrand(itemInfo);
 			}
 		}
 	}

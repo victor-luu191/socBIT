@@ -6,7 +6,8 @@ class ErrorCal {
 	
 	// Pre: both weight matrices are square with the same dimension
 	static RealMatrix edgeWeightErrors(RealMatrix estimated_weights, RealMatrix actual_edge_weights) {
-		// as w_{u, u}'s do NOT exist, we need to exclude errors due to estimating them by the following trick 
+		// Ad-hoc trick: as w_{u, u}'s do NOT exist, we need to exclude errors due to estimating them by 
+		// resetting them equal to estimated weights
 		int numUser = actual_edge_weights.getColumnDimension();
 		for (int u = 0; u < numUser; u++) {
 			actual_edge_weights.setEntry(u, u, estimated_weights.getEntry(u, u));	  

@@ -40,11 +40,13 @@ public class GD_Trainer {
 	 */
 	Parameters gradDescent(Parameters initParams, String resDir) throws IOException {
 		
-		// TODO Auto-generated method stub
+		System.out.println("Start training...");
+		System.out.println("Iter, Objective value");
 		
 		int numIter = 0;
 		Parameters cParams = new Parameters(initParams);
 		double cValue = objValue(initParams);
+		System.out.println(numIter + ", " + cValue);
 		double difference = Double.POSITIVE_INFINITY;
 		
 //		StringBuilder sbParams = new StringBuilder("iter, ...");
@@ -64,10 +66,12 @@ public class GD_Trainer {
 			// prep for next iter
 			cParams = new Parameters(nParams);						
 			cValue = nValue;
+			System.out.println(numIter + "," + cValue);
 		}
 		
 		String fout = resDir + "obj_values.csv";
 		Savers.save(sbObjValue.toString(), fout);
+		System.out.println("Training done :)");
 		return cParams;
 	}
 	
@@ -86,17 +90,18 @@ public class GD_Trainer {
 			sufficentReduction = (funcDiff < reduction);
 			
 			if (funcDiff == 0) {
-				System.out.println("meet a local minimum !!!");
+				System.out.println("Meet a local minimum !!!");
 				return nParams;
 			}
 		}
 		
 		if (sufficentReduction) {
-			System.out.println("found new params with sufficient reduction");
+			System.out.println("Found new params with sufficient reduction");
 			return nParams;
 		} else {
 			System.out.println("Cannot find new params with sufficient reduction. "
 					+ "Line search stopped due to step size too small");
+			
 			return cParams;
 		}
 	}

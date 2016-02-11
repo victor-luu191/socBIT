@@ -21,7 +21,9 @@ public class GradCalculator {
 	public GradCalculator(GD_Trainer trainer) {
 		
 		numTopic = trainer.numTopic;
+		ds = trainer.ds;
 		getDims(ds);
+		hypers = trainer.hypers;
 	}
 
 	private void getDims(Dataset ds) {
@@ -71,7 +73,7 @@ public class GradCalculator {
 	 */
 	RealVector itemTopicGrad(Parameters params, int itemIndex, RealMatrix rating_errors) {
 		
-		RealVector curTopicGrad = params.topicItem.getRowVector(itemIndex);
+		RealVector curTopicGrad = params.topicItem.getColumnVector(itemIndex);
 		double topicLambda = hypers.topicLambda;
 		RealVector nextTopicGrad = curTopicGrad.mapMultiply(topicLambda);
 		
