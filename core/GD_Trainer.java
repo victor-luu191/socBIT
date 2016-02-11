@@ -40,6 +40,7 @@ public class GD_Trainer {
 	 */
 	Parameters gradDescent(Parameters initParams, String resDir) throws IOException {
 		
+		System.out.println();
 		System.out.println("Start training...");
 		System.out.println("Iter, Objective value");
 		
@@ -96,7 +97,7 @@ public class GD_Trainer {
 		}
 		
 		if (sufficentReduction) {
-			System.out.println("Found new params with sufficient reduction");
+//			System.out.println("Found new params with sufficient reduction");
 			return nParams;
 		} else {
 			System.out.println("Cannot find new params with sufficient reduction. "

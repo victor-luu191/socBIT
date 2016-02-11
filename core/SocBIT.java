@@ -30,13 +30,11 @@ public class SocBIT {
 //		split(ds, train_ratio);
 		
 		int numTopic = 10;	// can use the pkg org.kohsuke.args4j to obtain named args
-		
 		// currently training on whole data set, switch to training set later
 		GD_Trainer gd_trainer = init_GD_Trainer(ds, numTopic);	
 		Parameters initParams = new Parameters(ds.numUser, ds.numItem, numTopic, ds.numBrand);
 		String resDir = "result/syn/";
 		Parameters learned_params = gd_trainer.gradDescent(initParams, resDir);
-		
 		save(learned_params, resDir);
 //		predict(learned_params, test_ds);
 	}
@@ -109,9 +107,9 @@ public class SocBIT {
 		int numUser = userMap.size();
 		edge_weights = edge_weights.getSubMatrix(1, numUser, 1, numUser);	// rm redundant rows and cols
 		System.out.println("Loaded all edge weights.");
-		System.out.println("first row of ede weights");
-		System.out.println(edge_weights.getRowVector(0).toString());
-		System.out.println();
+//		System.out.println("first row of ede weights");
+//		System.out.println(edge_weights.getRowVector(0).toString());
+//		System.out.println();
 		return edge_weights;
 	}
 	private static RealMatrix loadRatings(String fname) throws IOException {
@@ -139,9 +137,9 @@ public class SocBIT {
 		System.out.println("numUser = " + numUser  + ", numItem = " + numItem);
 		ratings = ratings.getSubMatrix(1, numUser, 1, numItem);		// rm redundant rows and cols
 		System.out.println("Loaded all ratings.");
-		System.out.println("First row of ratings: ");
-		System.out.println(ratings.getRowVector(0).toString());
-		System.out.println();
+//		System.out.println("First row of ratings: ");
+//		System.out.println(ratings.getRowVector(0).toString());
+//		System.out.println();
 		return ratings;
 	}
 	
