@@ -1,10 +1,16 @@
 package core;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import myUtil.Savers;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
@@ -23,20 +29,37 @@ public class SocBIT {
 	
 	public static void main(String[] args) throws IOException {
 		
-		String dataDir = "data/syn/";	// or args[0]
-		int numBrand = 20;	// temporary value passing, later will read from file data_stats or itemInfo
+		// temporary value passing, later will read from file data_stats or itemInfo
+		int numUser = 1000;
+		int numBrand = 20;	
+
+		// TODO: switch to the pkg org.kohsuke.args4j to enable named args
+		String dataDir = "data/syn/N" + numUser + "/";	// or args[0]
 		Dataset ds = loadData(dataDir, numBrand);
 //		double train_ratio = 0.8;
 //		split(ds, train_ratio);
 		
-		int numTopic = 10;	// can use the pkg org.kohsuke.args4j to obtain named args
-		// currently training on whole data set, switch to training set later
-		GD_Trainer gd_trainer = init_GD_Trainer(ds, numTopic);	
-		Parameters initParams = new Parameters(ds.numUser, ds.numItem, numTopic, ds.numBrand);
-		String resDir = "result/syn/";
+		int minK = 5;
+		int maxK = 70;
+		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
+			train(ds, numTopic);
+		}	
+		
+//		predict(learned_params, test_ds);
+	}
+	
+	private static void train(Dataset ds, int numTopic) throws IOException {
+		
+		GD_Trainer gd_trainer = init_GD_Trainer(ds, numTopic);	// currently training on whole data set, switch to training set later	
+		Parameters initParams = new Parameters(ds.numUser, ds.numItem, ds.numBrand, gd_trainer.numTopic);
+		
+		String resDir = "result/syn/numTopic" + numTopic + "/" ;
+		if (!Files.exists(Paths.get(resDir))) {
+			Files.createDirectories(Paths.get(resDir));
+		} 
+		
 		Parameters learned_params = gd_trainer.gradDescent(initParams, resDir);
 		save(learned_params, resDir);
-//		predict(learned_params, test_ds);
 	}
 	/**
 	 * Make predictions using specified {@link params} and check with ground truth {@link test_ds} to obtain ... evaluation metrics
@@ -48,9 +71,22 @@ public class SocBIT {
 		
 	}
 
-	private static void save(Parameters params, String resDir) {
-		// TODO Auto-generated method stub
+	private static void save(Parameters params, String resDir) throws IOException {
 		
+		String userTopicFeat_file = resDir + "user_topic_feats.csv";
+		Savers.save(params.topicUser.toString(), userTopicFeat_file);
+		
+		String userBrandFeat_file = resDir + "user_brand_feats.csv";
+		Savers.save(params.brandUser.toString(), userBrandFeat_file);
+		
+		String itemTopicFeat_file = resDir + "item_topic_feats.csv";
+		Savers.save(params.topicItem.toString(), itemTopicFeat_file);
+		
+		String itemBrandFeat_file = resDir + "item_brand_feats.csv";
+		Savers.save(params.brandItem.toString(), itemBrandFeat_file);
+		
+		String decisionPref_file = resDir + "decision_prefs.csv";
+		Savers.save(Arrays.toString(params.userDecisionPrefs), decisionPref_file);
 	}
 
 	private static GD_Trainer init_GD_Trainer(Dataset ds, int numTopic) {
@@ -61,10 +97,12 @@ public class SocBIT {
 		Hypers hypers = new Hypers(topicLambda, brandLambda, weightLambda, decisionLambda);
 		int maxIter = 100;
 		GD_Trainer gdTrainer = new GD_Trainer(ds, numTopic, hypers, maxIter);
+		
 		System.out.println("Initialized a regularized GD trainer with " + numTopic + " topics.");
-		System.out.println("Regularization constants: ");
-		System.out.println("topicLambda, brandLambda, weightLambda, decisionLambda" );
-		System.out.println(topicLambda + "," + brandLambda + "," + weightLambda + "," + decisionLambda);
+//		System.out.println("Regularization constants: ");
+//		System.out.println("topicLambda, brandLambda, weightLambda, decisionLambda" );
+//		System.out.println(topicLambda + "," + brandLambda + "," + weightLambda + "," + decisionLambda);
+		
 		return gdTrainer;
 	}
 

@@ -9,8 +9,8 @@ class Estimator {
 	/**
 	 * fields derived from {@code params}
 	 */
-	private DiagonalMatrix decisionPrefs;
 	private int numUser;
+	private DiagonalMatrix decisionPrefs;
 	private RealMatrix idMat;
 
 	public Estimator(Parameters params) {

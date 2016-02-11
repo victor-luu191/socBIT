@@ -40,7 +40,6 @@ public class GD_Trainer {
 	 */
 	Parameters gradDescent(Parameters initParams, String resDir) throws IOException {
 		
-		System.out.println();
 		System.out.println("Start training...");
 		System.out.println("Iter, Objective value");
 		
@@ -56,7 +55,7 @@ public class GD_Trainer {
 		
 		GradCalculator gradCal = new GradCalculator(this);
 		// while not convergence and still can try more
-		while ( (Math.abs(difference) > EPSILON) && (numIter < maxIter) ) {
+		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
 			Parameters cGrad = gradCal.calGrad(cParams);
 			Parameters nParams = lineSearch(cParams, cGrad, cValue);
@@ -70,10 +69,21 @@ public class GD_Trainer {
 			System.out.println(numIter + "," + cValue);
 		}
 		
-		String fout = resDir + "obj_values.csv";
-		Savers.save(sbObjValue.toString(), fout);
-		System.out.println("Training done :)");
+		if (!isLarge(difference)) {
+			System.out.println("Converged to a local minimum :)");
+			String fout = resDir + "obj_values.csv";
+			Savers.save(sbObjValue.toString(), fout);
+			System.out.println("Training done.");
+			System.out.println();
+		} else {
+			System.out.println("Not converged yet but already exceeded the maximum number of iterations. Training stopped!!!");
+		}
+		
 		return cParams;
+	}
+
+	private boolean isLarge(double difference) {
+		return Math.abs(difference) > EPSILON;
 	}
 	
 	private Parameters lineSearch(Parameters cParams, Parameters cGrad, double cValue) {
@@ -109,7 +119,7 @@ public class GD_Trainer {
 
 	private Parameters update(Parameters cParams, double stepSize, Parameters cGrad) {
 		
-		Parameters nParams = new Parameters(ds.numUser, ds.numItem, numTopic, ds.numBrand);
+		Parameters nParams = new Parameters(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
 		for (int u = 0; u < ds.numUser; u++) {
 			// user decision pref
 			nParams.userDecisionPrefs[u] = cParams.userDecisionPrefs[u] - stepSize * cGrad.userDecisionPrefs[u];

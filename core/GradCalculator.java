@@ -12,24 +12,13 @@ public class GradCalculator {
 	private Hypers hypers;
 	// derived fields
 	private int numTopic;
-	private int numBrand;
-	private int numUser;
-	private int numItem;
-	
 	Dataset ds;
 	
 	public GradCalculator(GD_Trainer trainer) {
 		
 		numTopic = trainer.numTopic;
 		ds = trainer.ds;
-		getDims(ds);
 		hypers = trainer.hypers;
-	}
-
-	private void getDims(Dataset ds) {
-		numBrand = ds.numBrand;
-		numUser = ds.numUser;
-		numItem = ds.numItem;
 	}
 	
 	/**
@@ -47,16 +36,16 @@ public class GradCalculator {
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(estimated_weights, ds.edge_weights);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(estimated_ratings, ds.ratings);
 		
-		Parameters grad = new Parameters(numUser, numItem, numTopic, numBrand);
+		Parameters grad = new Parameters(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
 		// gradients for users
-		for (int u = 0; u < numUser; u++) {
+		for (int u = 0; u < ds.numUser; u++) {
 			grad.userDecisionPrefs[u] = userDecisionPrefDiff(params, u, rating_errors, edge_weight_errors);
 			grad.topicUser.setColumnVector(u, userTopicGrad(params, u, rating_errors, edge_weight_errors));
 			grad.brandUser.setColumnVector(u, userBrandGrad(params, u, rating_errors, edge_weight_errors));
 		}
 		
 		// gradients for items
-		for (int i = 0; i < numItem; i++) {
+		for (int i = 0; i < ds.numItem; i++) {
 			grad.topicItem.setColumnVector(i, itemTopicGrad(params, i, rating_errors));
 			grad.brandItem.setColumnVector(i, itemBrandGrad(params, i, rating_errors));
 		}
@@ -78,7 +67,7 @@ public class GradCalculator {
 		RealVector nextTopicGrad = curTopicGrad.mapMultiply(topicLambda);
 		
 		RealVector sum = new ArrayRealVector(numTopic);
-		for (int u = 0; u < numUser; u++) {
+		for (int u = 0; u < ds.numUser; u++) {
 			double w = params.userDecisionPrefs[u];
 			double weighted_rating_err = w * rating_errors.getEntry(u, itemIndex);
 			sum = sum.add(params.topicUser.getColumnVector(u).mapMultiply(weighted_rating_err));
@@ -94,8 +83,8 @@ public class GradCalculator {
 		double brandLambda = hypers.brandLambda;
 		RealVector nextBrandGrad = curBrandGrad.mapMultiply(brandLambda);
 		
-		RealVector sum = new ArrayRealVector(numBrand);
-		for (int u = 0; u < numUser; u++) {
+		RealVector sum = new ArrayRealVector(ds.numBrand);
+		for (int u = 0; u < ds.numUser; u++) {
 			double w = 1 - params.userDecisionPrefs[u];
 			double weighted_rating_err = w * rating_errors.getEntry(u, itemIndex);
 			sum = sum.add(params.brandUser.getColumnVector(u).mapMultiply(weighted_rating_err));
@@ -121,14 +110,14 @@ public class GradCalculator {
 		RealVector nextTopicGrad = curTopicGrad.mapMultiply(topicLambda);
 		// component wrt rating errors
 		RealVector rating_sum = new ArrayRealVector(numTopic);
-		for (int i = 0; i < numItem; i++) {
+		for (int i = 0; i < ds.numItem; i++) {
 			RealVector curItemTopicFeat = params.topicItem.getColumnVector(i);
 			RealVector modified_topicFeat = curItemTopicFeat.mapMultiply(rating_errors.getEntry(u, i));
 			rating_sum = rating_sum.add(modified_topicFeat);
 		}
 		// component wrt error of edge weight estimation 
 		RealVector edge_weight_sum = new ArrayRealVector(numTopic);
-		for (int v = 0; v < numUser; v++) {
+		for (int v = 0; v < ds.numUser; v++) {
 			RealVector curUserTopicFeat = params.topicUser.getColumnVector(v);
 			RealVector modified_topicFeat = curUserTopicFeat.mapMultiply(edge_weight_errors.getEntry(u, v));
 			edge_weight_sum = edge_weight_sum.add(modified_topicFeat);
@@ -147,16 +136,16 @@ public class GradCalculator {
 		double brandLambda = hypers.brandLambda;
 		RealVector nextBrandGrad = curBrandGrad.mapMultiply(brandLambda);
 		// component wrt rating errors
-		RealVector rating_sum = new ArrayRealVector(numBrand);
-		for (int i = 0; i < numItem; i++) {
+		RealVector rating_sum = new ArrayRealVector(ds.numBrand);
+		for (int i = 0; i < ds.numItem; i++) {
 			RealVector curItemBrandFeat = params.brandItem.getColumnVector(i);
 			RealVector modified_brandFeat = curItemBrandFeat.mapMultiply(rating_errors.getEntry(u, i));
 			rating_sum = rating_sum.add(modified_brandFeat);
 		}
 		
 		// component wrt error of edge weight estimation
-		RealVector edge_weight_sum = new ArrayRealVector(numBrand);
-		for (int v = 0; v < numUser; v++) {
+		RealVector edge_weight_sum = new ArrayRealVector(ds.numBrand);
+		for (int v = 0; v < ds.numUser; v++) {
 			RealVector curUserBrandFeat = params.brandUser.getColumnVector(v);
 			RealVector modified_BrandFeat = curUserBrandFeat.mapMultiply(edge_weight_errors.getEntry(u, v));
 			edge_weight_sum = edge_weight_sum.add(modified_BrandFeat);
@@ -178,7 +167,7 @@ public class GradCalculator {
 		RealVector beta_u = params.brandUser.getColumnVector(u);
 		
 		double rating_sum = 0;
-		for (int i = 0; i < numItem; i++) {
+		for (int i = 0; i < ds.numItem; i++) {
 			RealVector theta_i = params.topicItem.getColumnVector(i);
 			RealVector beta_i = params.brandItem.getColumnVector(i);
 			double topicSim = theta_u.dotProduct(theta_i);
@@ -187,7 +176,7 @@ public class GradCalculator {
 		}
 		
 		double edge_weight_sum = 0;
-		for (int v = 0; v < numUser; v++) {
+		for (int v = 0; v < ds.numUser; v++) {
 			RealVector theta_v = params.topicUser.getColumnVector(v);
 			RealVector beta_v = params.brandUser.getColumnVector(v);
 			double topicSim = theta_u.dotProduct(theta_v);
