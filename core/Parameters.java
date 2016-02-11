@@ -9,7 +9,7 @@ import org.apache.commons.math3.linear.RealVector;
 
 public class Parameters {
 	
-	private static final double EPSILON = Math.pow(10, -2);
+	private static final double EPSILON = Math.pow(10, -1);
 
 	/**
 	 * represent decision preference of users i.e. whether a user prefers brand-based or topic-based adopts
@@ -33,7 +33,7 @@ public class Parameters {
 	 * @param numTopic
 	 * @param numBrand
 	 */
-	public Parameters(int numUser, int numItem, int numTopic, int numBrand) {
+	public Parameters(int numUser, int numItem, int numBrand, int numTopic) {
 		
 		initUserTopicFeats(numUser, numTopic);
 		initUserBrandFeats(numUser, numBrand);
@@ -57,10 +57,12 @@ public class Parameters {
 
 	private void initItemTopicFeats(int numItem, int numTopic) {
 		topicItem = new Array2DRowRealMatrix(numTopic, numItem);
-		RealVector unitVector = unitVector(numTopic);
-		RealVector smallVector = unitVector.mapMultiply(EPSILON);
+//		RealVector unitVector = unitVector(numTopic);
+//		RealVector smallVector = unitVector.mapMultiply(EPSILON);
+		
+		RealVector uniformVector = uniformVector(numTopic);
 		for (int i = 0; i < numItem; i++) {
-			topicItem.setColumnVector(i, smallVector);	// unitVector
+			topicItem.setColumnVector(i, uniformVector);	// unitVector
 		}
 	}
 
@@ -75,17 +77,27 @@ public class Parameters {
 
 	private void initUserTopicFeats(int numUser, int numTopic) {
 		topicUser = new Array2DRowRealMatrix(numTopic, numUser);
-		RealVector unitVector = unitVector(numTopic);
-		RealVector smallVector = unitVector.mapMultiply(EPSILON);
+		
+//		RealVector unitVector = unitVector(numTopic);
+//		RealVector smallVector = unitVector.mapMultiply(EPSILON);
+		RealVector uniformVector = uniformVector(numTopic);
+		
 		for (int u = 0; u < numUser; u++) {
-			topicUser.setColumnVector(u, smallVector);	// unitVector
+			topicUser.setColumnVector(u, uniformVector);	// unitVector
 		}
+	}
+
+	private RealVector uniformVector(int size) {
+		RealVector unifVector = new ArrayRealVector(size);
+		unifVector = unifVector.mapAdd(1.0/size);
+		return unifVector;
 	}
 
 	private RealVector unitVector(int size) {
 		RealVector unitVector = new ArrayRealVector(size);
-		unitVector.setEntry(0, 1);
-		for (int k = 1; k < size; k++) {
+		int last = size - 1;
+		unitVector.setEntry(last, 1);
+		for (int k = 0; k < last; k++) {
 			unitVector.setEntry(k, 0);
 		}
 		return unitVector;
