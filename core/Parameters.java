@@ -9,6 +9,8 @@ import org.apache.commons.math3.linear.RealVector;
 
 public class Parameters {
 	
+	private static final double EPSILON = Math.pow(10, -2);
+
 	/**
 	 * represent decision preference of users i.e. whether a user prefers brand-based or topic-based adopts
 	 * Range: [0,1]; > 0.5 if the user prefers topic-based, < 0.5 if  the user prefers brand-based
@@ -47,32 +49,36 @@ public class Parameters {
 	private void initItemBrandFeats(int numItem, int numBrand) {
 		brandItem = new Array2DRowRealMatrix(numBrand, numItem);
 		RealVector unitVector = unitVector(numBrand);
+		RealVector smallVector = unitVector.mapMultiply(EPSILON);
 		for (int i = 0; i < numItem; i++) {
-			brandItem.setColumnVector(i, unitVector);
+			brandItem.setColumnVector(i, smallVector);	// unitVector
 		}
 	}
 
 	private void initItemTopicFeats(int numItem, int numTopic) {
 		topicItem = new Array2DRowRealMatrix(numTopic, numItem);
 		RealVector unitVector = unitVector(numTopic);
+		RealVector smallVector = unitVector.mapMultiply(EPSILON);
 		for (int i = 0; i < numItem; i++) {
-			topicItem.setColumnVector(i, unitVector);
+			topicItem.setColumnVector(i, smallVector);	// unitVector
 		}
 	}
 
 	private void initUserBrandFeats(int numUser, int numBrand) {
 		brandUser = new Array2DRowRealMatrix(numBrand, numUser);
 		RealVector unitVector = unitVector(numBrand);
+		RealVector smallVector = unitVector.mapMultiply(EPSILON);
 		for (int u = 0; u < numUser; u++) {
-			brandUser.setColumnVector(u, unitVector);
+			brandUser.setColumnVector(u, smallVector);	// unitVector
 		}
 	}
 
 	private void initUserTopicFeats(int numUser, int numTopic) {
 		topicUser = new Array2DRowRealMatrix(numTopic, numUser);
 		RealVector unitVector = unitVector(numTopic);
+		RealVector smallVector = unitVector.mapMultiply(EPSILON);
 		for (int u = 0; u < numUser; u++) {
-			topicUser.setColumnVector(u, unitVector);
+			topicUser.setColumnVector(u, smallVector);	// unitVector
 		}
 	}
 
