@@ -2,6 +2,7 @@ package core;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,15 +14,20 @@ import java.util.Map;
 import myUtil.Savers;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 import defs.Dataset;
+import defs.Errors;
 import defs.Hypers;
 
 public class SocBIT {
 
-	private static int maxNumUser = 1000;
+	
+	private static int maxNumUser = 2000;
 	private static int maxNumItem = 100000;
+	private static final int maxDim = maxNumItem;
 	
 	static Dataset train_ds;
 	static Dataset test_ds;
@@ -34,32 +40,109 @@ public class SocBIT {
 		int numBrand = 20;	
 
 		// TODO: switch to the pkg org.kohsuke.args4j to enable named args
-		String dataDir = "data/syn/N" + numUser + "/";	// or args[0]
+		String dataDir = "data/syn/N" + numUser + "/unif_true_params/";	// or args[0]
 		Dataset ds = loadData(dataDir, numBrand);
 //		double train_ratio = 0.8;
 //		split(ds, train_ratio);
 		
 		int minK = 5;
-		int maxK = 70;
+		int maxK = 15;
+		Parameters gt_params = loadParams(dataDir);
+		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
-			train(ds, numTopic);
+			Parameters learned_params = train(ds, numTopic);
+			Errors errors = compDiff(learned_params, gt_params);
+//			"numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
+			errStr += numTopic + ","  + errors.topicUser + "," + errors.topicItem + "," + errors.brandUser + "," + errors.brandItem + "," + 
+						errors.decisionPrefs + "\n";
 		}	
-		
+		String fErrors = "result/syn/N" + ds.numUser + "/unif_true_params/" + "/" ;
+		Savers.save(errStr, fErrors);
 //		predict(learned_params, test_ds);
 	}
 	
-	private static void train(Dataset ds, int numTopic) throws IOException {
+	private static Errors compDiff(Parameters params1, Parameters params2) {
+		
+		double topicUserErr = params1.topicUser.subtract(params2.topicUser).getFrobeniusNorm();
+		double topicItemErr = params1.topicItem.subtract(params2.topicItem).getFrobeniusNorm();
+		double brandUserErr = params1.brandUser.subtract(params2.brandUser).getFrobeniusNorm();
+		double brandItemErr = params1.brandItem.subtract(params2.brandItem).getFrobeniusNorm();
+		double decisionPrefErr = toVector(params1.userDecisionPrefs).subtract(toVector(params2.userDecisionPrefs)).getNorm();
+		
+		return new Errors(topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr);
+	}
+
+	private static RealVector toVector(double[] arr) {
+		return new ArrayRealVector(arr);
+	}
+
+	private static Parameters loadParams(String gtParamsDir) throws IOException {
+		double[] decPrefs = loadDecPref(gtParamsDir);
+		
+		RealMatrix topicUser = loadMat(gtParamsDir, "topic_user_feats.csv");
+		RealMatrix brandUser = loadMat(gtParamsDir, "brand_user_feats.csv");
+		RealMatrix topicItem = loadMat(gtParamsDir, "topic_item_feats.csv");
+		RealMatrix brandItem = loadMat(gtParamsDir, "brand_item_feats.csv");
+		
+		int numTopic = topicItem.getRowDimension();
+		int numUser = topicUser.getColumnDimension();
+		int numBrand = brandUser.getRowDimension();
+		int numItem = topicItem.getColumnDimension();
+		System.out.println("numTopic, numUser, numBrand, numItem");
+		System.out.println(numTopic + "," + numUser + "," + numBrand + "," + numItem);
+		
+		return new Parameters(decPrefs, topicUser, brandUser, topicItem, brandItem);
+	}
+
+	private static RealMatrix loadMat(String gtParamsDir, String fname) throws IOException {
+		
+		RealMatrix matrix = new Array2DRowRealMatrix(maxDim, maxDim);
+		BufferedReader reader = new BufferedReader(new FileReader(fname));
+		
+		int numRow = 0;
+		
+		String line = reader.readLine();
+		int numCol = line.split(",").length - 1;	// bc the first column contains row indices not values
+		while ((line = reader.readLine()) != null) {
+			numRow ++;
+			String[] fields = line.split(",");
+			int row = Integer.parseInt(fields[0]);
+			for (int col = 1; col < fields.length; col++) {
+				matrix.setEntry(row, col, Double.parseDouble(fields[col]));
+			}
+		}
+		matrix = matrix.getSubMatrix(1, numRow, 1, numCol);
+		reader.close();
+		return matrix;
+	}
+
+	private static double[] loadDecPref(String gtParamsDir) throws FileNotFoundException, IOException {
+		
+		String fname = gtParamsDir + "/decision_pref.csv";
+		BufferedReader reader = new BufferedReader(new FileReader(fname));
+		String line = reader.readLine();
+		String[] fields = line.split(",");
+		double[] decPrefs = new double[fields.length];
+		for (int i = 0; i < fields.length; i++) {
+			decPrefs[i] = Double.parseDouble(fields[i]);
+		}
+		reader.close();
+		return decPrefs;
+	}
+
+	private static Parameters train(Dataset ds, int numTopic) throws IOException {
 		
 		GD_Trainer gd_trainer = init_GD_Trainer(ds, numTopic);	// currently training on whole data set, switch to training set later	
 		Parameters initParams = new Parameters(ds.numUser, ds.numItem, ds.numBrand, gd_trainer.numTopic);
 		
-		String resDir = "result/syn/numTopic" + numTopic + "/" ;
+		String resDir = "result/syn/N" + ds.numUser + "/unif_true_params/numTopic" + numTopic + "/" ;
 		if (!Files.exists(Paths.get(resDir))) {
 			Files.createDirectories(Paths.get(resDir));
 		} 
 		
 		Parameters learned_params = gd_trainer.gradDescent(initParams, resDir);
 		save(learned_params, resDir);
+		return learned_params;
 	}
 	/**
 	 * Make predictions using specified {@link params} and check with ground truth {@link test_ds} to obtain ... evaluation metrics
