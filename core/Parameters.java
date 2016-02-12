@@ -26,6 +26,16 @@ public class Parameters {
 	// if a brand b does not produce an item i then the entry (i,b) is simply 0 
 	RealMatrix brandItem;	
 	
+	public Parameters(double[] userDecisionPrefs, RealMatrix topicUser,
+			RealMatrix brandUser, RealMatrix topicItem, RealMatrix brandItem) {
+		
+		this.userDecisionPrefs = userDecisionPrefs;
+		this.topicUser = topicUser;
+		this.brandUser = brandUser;
+		this.topicItem = topicItem;
+		this.brandItem = brandItem;
+	}
+
 	/**
 	 * return default params with correct {@link dimensions}
 	 * @param numUser
