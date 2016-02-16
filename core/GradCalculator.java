@@ -13,6 +13,8 @@ public class GradCalculator {
 	// derived fields
 	private int numTopic;
 	Dataset ds;
+	private RealMatrix estimated_ratings;
+	private RealMatrix estimated_weights;
 	
 	public GradCalculator(GD_Trainer trainer) {
 		
@@ -30,11 +32,14 @@ public class GradCalculator {
 	Parameters calGrad(Parameters params) {
 		
 		Estimator estimator = new Estimator(params);
-		RealMatrix estimated_ratings = estimator.estRatings();
-		RealMatrix estimated_weights = estimator.estWeights();
+		estimated_ratings = estimator.estRatings();
+		RealMatrix bounded_ratings = estimator.bound(estimated_ratings);
 		
-		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(estimated_weights, ds.edge_weights);
-		RealMatrix rating_errors = ErrorCal.ratingErrors(estimated_ratings, ds.ratings);
+		estimated_weights = estimator.estWeights();
+		RealMatrix bounded_weights = estimator.bound(estimated_weights);
+		
+		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);	// estimated_weights
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);					// estimated_ratings
 		
 		Parameters grad = new Parameters(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
 		// gradients for users
@@ -70,13 +75,15 @@ public class GradCalculator {
 		for (int u = 0; u < ds.numUser; u++) {
 			double w = params.userDecisionPrefs[u];
 			double weighted_rating_err = w * rating_errors.getEntry(u, itemIndex);
-			sum = sum.add(params.topicUser.getColumnVector(u).mapMultiply(weighted_rating_err));
+			RealVector userTopicFeat = params.topicUser.getColumnVector(u);
+			double logisDiff = logisDiff(estimated_ratings.getEntry(u, itemIndex));
+			sum = sum.add(userTopicFeat.mapMultiply(weighted_rating_err).mapMultiply(logisDiff));
 		}
 		
 		nextTopicGrad = nextTopicGrad.subtract(sum);
 		return nextTopicGrad;
 	}
-	
+
 	RealVector itemBrandGrad(Parameters params, int itemIndex, RealMatrix rating_errors) {
 		
 		RealVector curBrandGrad = params.brandItem.getColumnVector(itemIndex);
@@ -87,7 +94,9 @@ public class GradCalculator {
 		for (int u = 0; u < ds.numUser; u++) {
 			double w = 1 - params.userDecisionPrefs[u];
 			double weighted_rating_err = w * rating_errors.getEntry(u, itemIndex);
-			sum = sum.add(params.brandUser.getColumnVector(u).mapMultiply(weighted_rating_err));
+			RealVector userBrandFeat = params.brandUser.getColumnVector(u);
+			double logisDiff = logisDiff(estimated_ratings.getEntry(u, itemIndex));
+			sum = sum.add(userBrandFeat.mapMultiply(weighted_rating_err).mapMultiply(logisDiff));
 		}
 		nextBrandGrad = nextBrandGrad.subtract(sum);
 		return nextBrandGrad;
@@ -112,14 +121,16 @@ public class GradCalculator {
 		RealVector rating_sum = new ArrayRealVector(numTopic);
 		for (int i = 0; i < ds.numItem; i++) {
 			RealVector curItemTopicFeat = params.topicItem.getColumnVector(i);
-			RealVector modified_topicFeat = curItemTopicFeat.mapMultiply(rating_errors.getEntry(u, i));
+			double ratingLogisDiff = logisDiff(estimated_ratings.getEntry(u, i));
+			RealVector modified_topicFeat = curItemTopicFeat.mapMultiply(rating_errors.getEntry(u, i)).mapMultiply(ratingLogisDiff);
 			rating_sum = rating_sum.add(modified_topicFeat);
 		}
 		// component wrt error of edge weight estimation 
 		RealVector edge_weight_sum = new ArrayRealVector(numTopic);
 		for (int v = 0; v < ds.numUser; v++) {
 			RealVector curUserTopicFeat = params.topicUser.getColumnVector(v);
-			RealVector modified_topicFeat = curUserTopicFeat.mapMultiply(edge_weight_errors.getEntry(u, v));
+			double weightLogisDiff = logisDiff(estimated_weights.getEntry(u, v));
+			RealVector modified_topicFeat = curUserTopicFeat.mapMultiply(edge_weight_errors.getEntry(u, v)).mapMultiply(weightLogisDiff);
 			edge_weight_sum = edge_weight_sum.add(modified_topicFeat);
 			
 		}
@@ -139,7 +150,8 @@ public class GradCalculator {
 		RealVector rating_sum = new ArrayRealVector(ds.numBrand);
 		for (int i = 0; i < ds.numItem; i++) {
 			RealVector curItemBrandFeat = params.brandItem.getColumnVector(i);
-			RealVector modified_brandFeat = curItemBrandFeat.mapMultiply(rating_errors.getEntry(u, i));
+			double ratingLogisDiff = logisDiff(estimated_ratings.getEntry(u, i));
+			RealVector modified_brandFeat = curItemBrandFeat.mapMultiply(rating_errors.getEntry(u, i)).mapMultiply(ratingLogisDiff);
 			rating_sum = rating_sum.add(modified_brandFeat);
 		}
 		
@@ -147,7 +159,8 @@ public class GradCalculator {
 		RealVector edge_weight_sum = new ArrayRealVector(ds.numBrand);
 		for (int v = 0; v < ds.numUser; v++) {
 			RealVector curUserBrandFeat = params.brandUser.getColumnVector(v);
-			RealVector modified_BrandFeat = curUserBrandFeat.mapMultiply(edge_weight_errors.getEntry(u, v));
+			double weightLogisDiff = logisDiff(estimated_weights.getEntry(u, v));
+			RealVector modified_BrandFeat = curUserBrandFeat.mapMultiply(edge_weight_errors.getEntry(u, v)).mapMultiply(weightLogisDiff);
 			edge_weight_sum = edge_weight_sum.add(modified_BrandFeat);
 		}
 		
@@ -172,7 +185,8 @@ public class GradCalculator {
 			RealVector beta_i = params.brandItem.getColumnVector(i);
 			double topicSim = theta_u.dotProduct(theta_i);
 			double brandSim = beta_u.dotProduct(beta_i);
-			rating_sum += rating_errors.getEntry(u, i) * (topicSim - brandSim);
+			double ratingLogisDiff = logisDiff(estimated_ratings.getEntry(u, i));
+			rating_sum += rating_errors.getEntry(u, i) * (topicSim - brandSim) * ratingLogisDiff;
 		}
 		
 		double edge_weight_sum = 0;
@@ -181,13 +195,19 @@ public class GradCalculator {
 			RealVector beta_v = params.brandUser.getColumnVector(v);
 			double topicSim = theta_u.dotProduct(theta_v);
 			double brandSim = beta_u.dotProduct(beta_v);
-			edge_weight_sum += edge_weight_errors.getEntry(u, v) * (topicSim - brandSim);
+			double weightLogisDiff = logisDiff(estimated_weights.getEntry(u, v));
+			edge_weight_sum += edge_weight_errors.getEntry(u, v) * (topicSim - brandSim) * weightLogisDiff;
 		}
 		
 		double weightLambda = hypers.weightLambda;
 		double bigSum = rating_sum + weightLambda * edge_weight_sum;
 		decisionPrefDiff = decisionPrefDiff - bigSum;
 		return decisionPrefDiff;
+	}
+	
+	private double logisDiff(double x) {
+		double invExp = Math.exp(-x);
+		return invExp/Math.pow(1 + invExp, 2);
 	}
 	
 	/**
