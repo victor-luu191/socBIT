@@ -24,16 +24,20 @@ class Estimator {
 		
 		RealMatrix topicRatings = decisionPrefs.multiply(params.topicUser.transpose()).multiply(params.topicItem);
 		RealMatrix brandRatings = idMat.subtract(decisionPrefs).multiply(params.brandUser.transpose()).multiply(params.brandItem);
-		RealMatrix est_ratings =  logisticMat(topicRatings.add(brandRatings)); 
+		RealMatrix est_ratings =  topicRatings.add(brandRatings); 
 		return est_ratings;
 	}
-
+	
 	RealMatrix estWeights() {
 		
 		RealMatrix topicWeights = decisionPrefs.multiply(params.topicUser.transpose()).multiply(params.topicUser);
 		RealMatrix brandWeights = idMat.subtract(decisionPrefs).multiply(params.brandUser.transpose()).multiply(params.brandUser);
-		RealMatrix est_edge_weights = logisticMat(topicWeights.add(brandWeights));
+		RealMatrix est_edge_weights = topicWeights.add(brandWeights);
 		return est_edge_weights;
+	}
+	
+	RealMatrix bound(RealMatrix matrix) {
+		return logisticMat(matrix);
 	}
 	
 	private double logistic(double x) {
