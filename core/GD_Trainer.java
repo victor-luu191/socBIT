@@ -57,7 +57,7 @@ public class GD_Trainer {
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
-			SocBIT_Params cGrad = gradCal.calGrad(cParams);
+			SocBIT_Params cGrad = gradCal.socBIT_Grad(cParams);
 			SocBIT_Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = objValue(nParams);
 			sbObjValue = sbObjValue.append(numIter + "," + nValue + "\n");
@@ -157,9 +157,9 @@ public class GD_Trainer {
 
 	private double objValue(SocBIT_Params params) {
 		
-		Estimator estimator = new Estimator(params);
-		RealMatrix estimated_ratings = estimator.socBIT_Ratings();
-		RealMatrix estimated_weights = estimator.socBIT_Weights();
+		SocBIT_Estimator socBIT_Estimator = new SocBIT_Estimator(params);
+		RealMatrix estimated_ratings = socBIT_Estimator.estRatings();
+		RealMatrix estimated_weights = socBIT_Estimator.estWeights();
 		
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(estimated_weights, ds.edge_weights);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(estimated_ratings, ds.ratings);

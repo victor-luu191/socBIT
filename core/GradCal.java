@@ -29,14 +29,14 @@ public class GradCal {
 	 * @param params
 	 * @return the complete gradient with all its components
 	 */
-	SocBIT_Params calGrad(SocBIT_Params params) {
+	SocBIT_Params socBIT_Grad(SocBIT_Params params) {
 		
-		Estimator estimator = new Estimator(params);
-		estimated_ratings = estimator.socBIT_Ratings();
-		RealMatrix bounded_ratings = estimator.bound(estimated_ratings);
+		SocBIT_Estimator socBIT_Estimator = new SocBIT_Estimator(params);
+		estimated_ratings = socBIT_Estimator.estRatings();
+		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
 		
-		estimated_weights = estimator.socBIT_Weights();
-		RealMatrix bounded_weights = estimator.bound(estimated_weights);
+		estimated_weights = socBIT_Estimator.estWeights();
+		RealMatrix bounded_weights = UtilFuncs.bound(estimated_weights);
 		
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);	// estimated_weights
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);					// estimated_ratings
@@ -57,7 +57,7 @@ public class GradCal {
 		
 		return grad;
 	}
-
+	
 	/**
 	 * @param itemIndex
 	 * @param cParams
@@ -65,11 +65,49 @@ public class GradCal {
 	 * @param ratingErr: errors of estimating ratings of the item
 	 * @return
 	 */
-	RealVector itemTopicGrad(SocBIT_Params params, int itemIndex, RealMatrix rating_errors) {
+	RealVector itemTopicGrad(Params params, int itemIndex, RealMatrix rating_errors) {
 		
-		RealVector curTopicGrad = params.topicItem.getColumnVector(itemIndex);
+		RealVector topicGrad = new ArrayRealVector(numTopic);
+		if (params instanceof SocBIT_Params) {
+			SocBIT_Params tmp_params = new SocBIT_Params((SocBIT_Params) params);
+			topicGrad = socBIT_itemTopicGrad(tmp_params, itemIndex, rating_errors);
+		} 
+		else {// simpler parameters with only topic features
+			topicGrad = ste_itemTopicGrad(params, itemIndex, rating_errors);
+		}
+		
+		return topicGrad;
+	}
+
+	/**
+	 * @param u
+	 * @param cParams
+	 * @param topicLambda
+	 * @param ratingErr
+	 * @param weightLambda 
+	 * @param strengthErr: errors in estimating strength of relationships of the user 
+	 * @return
+	 */
+	RealVector userTopicGrad(Params params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
+		
+		RealVector topicGrad = new ArrayRealVector(numTopic);
+		if (params instanceof SocBIT_Params) {
+			SocBIT_Params tmp_params = new SocBIT_Params((SocBIT_Params) params);
+			topicGrad = socBIT_userTopicGrad(tmp_params, u, rating_errors, edge_weight_errors);
+		} 
+		else {// simpler parameters with only topic features
+			topicGrad = ste_userTopicGrad(params, u, rating_errors);
+		}
+		
+		return topicGrad;
+	}
+	
+	private RealVector socBIT_itemTopicGrad(SocBIT_Params params, int itemIndex,
+									RealMatrix rating_errors) {
+		
+		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
 		double topicLambda = hypers.topicLambda;
-		RealVector nextTopicGrad = curTopicGrad.mapMultiply(topicLambda);
+		RealVector topicGrad = itemTopicFeats.mapMultiply(topicLambda);
 		
 		RealVector sum = new ArrayRealVector(numTopic);
 		for (int u = 0; u < ds.numUser; u++) {
@@ -80,43 +118,15 @@ public class GradCal {
 			sum = sum.add(userTopicFeat.mapMultiply(weighted_rating_err).mapMultiply(logisDiff));
 		}
 		
-		nextTopicGrad = nextTopicGrad.subtract(sum);
-		return nextTopicGrad;
+		topicGrad = topicGrad.subtract(sum);
+		return topicGrad;
 	}
 
-	RealVector itemBrandGrad(SocBIT_Params params, int itemIndex, RealMatrix rating_errors) {
-		
-		RealVector curBrandGrad = params.brandItem.getColumnVector(itemIndex);
-		double brandLambda = hypers.brandLambda;
-		RealVector nextBrandGrad = curBrandGrad.mapMultiply(brandLambda);
-		
-		RealVector sum = new ArrayRealVector(ds.numBrand);
-		for (int u = 0; u < ds.numUser; u++) {
-			double w = 1 - params.userDecisionPrefs[u];
-			double weighted_rating_err = w * rating_errors.getEntry(u, itemIndex);
-			RealVector userBrandFeat = params.brandUser.getColumnVector(u);
-			double logisDiff = logisDiff(estimated_ratings.getEntry(u, itemIndex));
-			sum = sum.add(userBrandFeat.mapMultiply(weighted_rating_err).mapMultiply(logisDiff));
-		}
-		nextBrandGrad = nextBrandGrad.subtract(sum);
-		return nextBrandGrad;
-	}
-	
-	/**
-	 * 
-	 * @param u
-	 * @param cParams
-	 * @param topicLambda
-	 * @param ratingErr
-	 * @param weightLambda 
-	 * @param strengthErr: errors in estimating strength of relationships of the user 
-	 * @return
-	 */
-	RealVector userTopicGrad(SocBIT_Params params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
-		
-		RealVector curTopicGrad = params.topicUser.getColumnVector(u);
+	private RealVector socBIT_userTopicGrad(SocBIT_Params params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
+
+		RealVector userTopicFeats = params.topicUser.getColumnVector(u);
 		double topicLambda = hypers.topicLambda;
-		RealVector nextTopicGrad = curTopicGrad.mapMultiply(topicLambda);
+		RealVector topicGrad = userTopicFeats.mapMultiply(topicLambda);
 		// component wrt rating errors
 		RealVector rating_sum = new ArrayRealVector(numTopic);
 		for (int i = 0; i < ds.numItem; i++) {
@@ -132,13 +142,43 @@ public class GradCal {
 			double weightLogisDiff = logisDiff(estimated_weights.getEntry(u, v));
 			RealVector modified_topicFeat = curUserTopicFeat.mapMultiply(edge_weight_errors.getEntry(u, v)).mapMultiply(weightLogisDiff);
 			edge_weight_sum = edge_weight_sum.add(modified_topicFeat);
-			
+
 		}
-		
+
 		double weightLambda = hypers.weightLambda;
 		RealVector bigSum = rating_sum.add(edge_weight_sum.mapMultiply(weightLambda));
-		nextTopicGrad = nextTopicGrad.subtract(bigSum.mapMultiply(params.userDecisionPrefs[u])); 	// see Eqn. 26
-		return nextTopicGrad;
+		topicGrad = topicGrad.subtract(bigSum.mapMultiply(params.userDecisionPrefs[u])); 	// see Eqn. 26
+		return topicGrad;
+	}
+	
+	private RealVector ste_itemTopicGrad(Params params, int itemIndex, RealMatrix rating_errors) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private RealVector ste_userTopicGrad(Params params, int u, RealMatrix rating_errors) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	
+	
+	RealVector itemBrandGrad(SocBIT_Params params, int itemIndex, RealMatrix rating_errors) {
+
+		RealVector curBrandGrad = params.brandItem.getColumnVector(itemIndex);
+		double brandLambda = hypers.brandLambda;
+		RealVector nextBrandGrad = curBrandGrad.mapMultiply(brandLambda);
+
+		RealVector sum = new ArrayRealVector(ds.numBrand);
+		for (int u = 0; u < ds.numUser; u++) {
+			double w = 1 - params.userDecisionPrefs[u];
+			double weighted_rating_err = w * rating_errors.getEntry(u, itemIndex);
+			RealVector userBrandFeat = params.brandUser.getColumnVector(u);
+			double logisDiff = logisDiff(estimated_ratings.getEntry(u, itemIndex));
+			sum = sum.add(userBrandFeat.mapMultiply(weighted_rating_err).mapMultiply(logisDiff));
+		}
+		nextBrandGrad = nextBrandGrad.subtract(sum);
+		return nextBrandGrad;
 	}
 	
 	RealVector userBrandGrad(SocBIT_Params params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
