@@ -61,7 +61,8 @@ public class GradCal {
 	}
 	
 	Params ste_Grad(Params params) {
-		STE_estimator ste_estimator = new STE_estimator(params, alpha);
+		
+		STE_estimator ste_estimator = new STE_estimator(params, alpha, ds.edge_weights);
 		estimated_ratings = ste_estimator.estRatings();
 		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);

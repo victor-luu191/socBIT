@@ -10,8 +10,14 @@ public class Params {
 	protected RealMatrix topicUser;
 	protected RealMatrix topicItem;
 
+	Params(int numUser, int numItem, int numTopic) {
+
+		topicUser = new Array2DRowRealMatrix(numTopic, numUser);
+		topicItem = new Array2DRowRealMatrix(numTopic, numItem);
+	}
+
 	protected void initItemTopicFeats(int numItem, int numTopic) {
-			topicItem = new Array2DRowRealMatrix(numTopic, numItem);
+			
 	//		RealVector unitVector = unitVector(numTopic);
 	//		RealVector smallVector = unitVector.mapMultiply(EPSILON);
 			
@@ -22,7 +28,6 @@ public class Params {
 		}
 
 	protected void initUserTopicFeats(int numUser, int numTopic) {
-			topicUser = new Array2DRowRealMatrix(numTopic, numUser);
 			
 	//		RealVector unitVector = unitVector(numTopic);
 	//		RealVector smallVector = unitVector.mapMultiply(EPSILON);
