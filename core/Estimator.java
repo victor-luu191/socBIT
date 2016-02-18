@@ -20,7 +20,7 @@ class Estimator {
 		idMat = MatrixUtils.createRealIdentityMatrix(numUser);
 	}
 	
-	RealMatrix estRatings() {
+	RealMatrix socBIT_Ratings() {
 		
 		RealMatrix topicRatings = decisionPrefs.multiply(params.topicUser.transpose()).multiply(params.topicItem);
 		RealMatrix brandRatings = idMat.subtract(decisionPrefs).multiply(params.brandUser.transpose()).multiply(params.brandItem);
@@ -28,13 +28,45 @@ class Estimator {
 		return est_ratings;
 	}
 	
-	RealMatrix estWeights() {
+	RealMatrix socBIT_Weights() {
 		
 		RealMatrix topicWeights = decisionPrefs.multiply(params.topicUser.transpose()).multiply(params.topicUser);
 		RealMatrix brandWeights = idMat.subtract(decisionPrefs).multiply(params.brandUser.transpose()).multiply(params.brandUser);
 		RealMatrix est_edge_weights = topicWeights.add(brandWeights);
 		return est_edge_weights;
 	}
+	
+	/**
+	 * Estimated rating r_{u,i} by STE (social trust ensemble) model in Hao Ma paper: Learning to Recommend with Social Trust Ensemble
+	 * @param u
+	 * @param i
+	 * @param edge_weights
+	 * @param alpha: control how much each user trusts himself vs. trust friends
+	 * @return
+	 */
+	double ste_Ratings(int u, int i, RealMatrix edge_weights, double alpha) {
+		RealVector userTopicFeat = params.topicUser.getColumnVector(u);
+		RealVector itemTopicFeat = params.topicItem.getColumnVector(i);
+		double personal_rating = userTopicFeat.dotProduct(itemTopicFeat);
+		
+		double neighbor_rating = 0;
+		for (int v = 0; v < numUser; v++)  {
+			RealVector v_topicFeat = params.topicUser.getColumnVector(v);
+			neighbor_rating += edge_weights.getEntry(v, u) * v_topicFeat.dotProduct(itemTopicFeat);
+		}
+		return alpha*personal_rating + (1 - alpha)*neighbor_rating;
+	}
+	
+	RealMatrix soRecRatings() {
+		RealMatrix estRatings = params.topicUser.transpose().multiply(params.topicItem);
+		return estRatings;
+	}
+	
+//	RealMatrix soRecEdgeWeights() {
+//		
+//	}
+	
+	
 	
 	RealMatrix bound(RealMatrix matrix) {
 		return logisticMat(matrix);
