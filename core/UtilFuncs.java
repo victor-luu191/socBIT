@@ -1,0 +1,28 @@
+package core;
+
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.RealMatrix;
+
+public class UtilFuncs {
+	
+	static double logistic(double x) {
+		return 1/(1 + Math.exp(-x));
+	}
+
+	static RealMatrix logisticMat(RealMatrix matrix) {
+		int rowDim = matrix.getRowDimension();
+		int colDim = matrix.getColumnDimension();
+		RealMatrix logisMatrix = new Array2DRowRealMatrix(rowDim, colDim);
+		for (int i = 0; i < rowDim; i++) {
+			for (int j = 0; j < colDim; j++) {
+				logisMatrix.setEntry(i, j, logistic(matrix.getEntry(i, j)));
+			}
+		}
+		
+		return logisMatrix;
+	}
+	
+	static RealMatrix bound(RealMatrix matrix) {
+		return logisticMat(matrix);
+	}
+}
