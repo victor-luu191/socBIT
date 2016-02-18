@@ -175,9 +175,39 @@ public class GradCal {
 	}
 	
 	private RealVector ste_itemTopicGrad(Params params, int itemIndex, RealMatrix rating_errors) {
-		// TODO Auto-generated method stub
 		
-		return null;
+		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
+		RealVector itemTopicGrad = itemTopicFeats.mapMultiply(hypers.topicLambda);
+		
+		RealVector sum = new ArrayRealVector(numTopic);
+		for (int u = 0; u < ds.numUser; u++) {
+			double rate_err = rating_errors.getEntry(u, itemIndex);
+			if (rate_err != 0) {
+				double logisDiff = logisDiff(estimated_ratings.getEntry(u, itemIndex));
+				RealVector userTopicFeats = params.topicUser.getColumnVector(u);
+				RealVector combo_feat = comboFeat(userTopicFeats, u, params);
+				
+				RealVector correctionByUser = combo_feat.mapMultiply(rate_err).mapMultiply(logisDiff);
+				sum = sum.add(correctionByUser);
+			}
+		}
+		
+		itemTopicGrad = itemTopicGrad.add(sum);
+		return itemTopicGrad;
+	}
+
+	private RealVector comboFeat(RealVector userTopicFeats, int u, Params params) {
+		RealVector combo_feat = userTopicFeats.mapMultiply(alpha);
+		RealVector friendFeats = new ArrayRealVector(numTopic);
+		for (int v = 0; v < ds.numUser; v++) {
+			double influenceWeight = ds.edge_weights.getEntry(v, u);
+			if (influenceWeight > 0) {
+				RealVector vFeat = params.topicUser.getColumnVector(v);
+				friendFeats = friendFeats.add(vFeat.mapMultiply(influenceWeight));
+			}
+		}
+		combo_feat = combo_feat.add(friendFeats.mapMultiply(1 - alpha));
+		return combo_feat;
 	}
 
 	private RealVector ste_userTopicGrad(Params params, int u, RealMatrix rating_errors) {
