@@ -5,14 +5,14 @@ import org.apache.commons.math3.linear.RealMatrix;
 class ErrorCal {
 	
 	// Pre: both weight matrices are square with the same dimension
-	static RealMatrix edgeWeightErrors(RealMatrix estimated_weights, RealMatrix actual_edge_weights) {
+	static RealMatrix edgeWeightErrors(RealMatrix estimated_weights, RealMatrix actual_weights) {
 		// Ad-hoc trick: as w_{u, u}'s do NOT exist, we need to exclude errors due to estimating them by 
 		// resetting them equal to estimated weights
-		int numUser = actual_edge_weights.getColumnDimension();
+		int numUser = actual_weights.getColumnDimension();
 		for (int u = 0; u < numUser; u++) {
-			actual_edge_weights.setEntry(u, u, estimated_weights.getEntry(u, u));	  
+			actual_weights.setEntry(u, u, estimated_weights.getEntry(u, u));	  
 		}
-		RealMatrix edge_weight_errors = actual_edge_weights.subtract(estimated_weights);
+		RealMatrix edge_weight_errors = actual_weights.subtract(estimated_weights);
 		return edge_weight_errors;
 	}
 	

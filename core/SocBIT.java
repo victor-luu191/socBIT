@@ -53,7 +53,7 @@ public class SocBIT {
 //		Parameters gt_params = loadParams(gtParamDir);
 //		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
-			Parameters learned_params = train(ds, numTopic);
+			Params learned_params = train(ds, numTopic);
 //			Errors errors = compDiff(learned_params, gt_params);
 //			errStr += numTopic + ","  + errors.topicUser + "," + errors.topicItem + "," + errors.brandUser + "," + errors.brandItem + "," + 
 //						errors.decisionPrefs + "\n";
@@ -63,7 +63,7 @@ public class SocBIT {
 //		predict(learned_params, test_ds);
 	}
 	
-	private static Errors compDiff(Parameters params1, Parameters params2) {
+	private static Errors compDiff(SocBIT_Params params1, SocBIT_Params params2) {
 		
 		double topicUserErr = params1.topicUser.subtract(params2.topicUser).getFrobeniusNorm();
 		double topicItemErr = params1.topicItem.subtract(params2.topicItem).getFrobeniusNorm();
@@ -78,7 +78,7 @@ public class SocBIT {
 		return new ArrayRealVector(arr);
 	}
 
-	private static Parameters loadParams(String gtParamsDir) throws IOException {
+	private static Params loadParams(String gtParamsDir) throws IOException {
 		System.out.println("Loading gt params from folder " + gtParamsDir);
 		double[] decPrefs = loadDecPref(gtParamsDir);
 		
@@ -94,7 +94,7 @@ public class SocBIT {
 		System.out.println("numTopic, numUser, numBrand, numItem");
 		System.out.println(numTopic + "," + numUser + "," + numBrand + "," + numItem);
 		
-		return new Parameters(decPrefs, topicUser, brandUser, topicItem, brandItem);
+		return new SocBIT_Params(decPrefs, topicUser, brandUser, topicItem, brandItem);
 	}
 
 	private static RealMatrix loadMat(String gtParamsDir, String fname) throws IOException {
@@ -139,17 +139,17 @@ public class SocBIT {
 		return prefs;
 	}
 
-	private static Parameters train(Dataset ds, int numTopic) throws IOException {
+	private static Params train(Dataset ds, int numTopic) throws IOException {
 		
 		GD_Trainer gd_trainer = init_GD_Trainer(ds, numTopic);	// currently training on whole data set, switch to training set later	
-		Parameters initParams = new Parameters(ds.numUser, ds.numItem, ds.numBrand, gd_trainer.numTopic);
+		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, gd_trainer.numTopic);
 		
 		String resDir = "result/syn/N" + ds.numUser + "/unif/numTopic" + numTopic + "/" ;
 		if (!Files.exists(Paths.get(resDir))) {
 			Files.createDirectories(Paths.get(resDir));
 		} 
 		
-		Parameters learned_params = gd_trainer.gradDescent(initParams, resDir);
+		SocBIT_Params learned_params = gd_trainer.gradDescent(initParams, resDir);
 		save(learned_params, resDir);
 		return learned_params;
 	}
@@ -158,12 +158,12 @@ public class SocBIT {
 	 * @param params
 	 * @param test_ds
 	 */
-	private static void predict(Parameters params, Dataset test_ds) {
+	private static void predict(Params params, Dataset test_ds) {
 		// TODO Auto-generated method stub
 		
 	}
 
-	private static void save(Parameters params, String resDir) throws IOException {
+	private static void save(SocBIT_Params params, String resDir) throws IOException {
 		
 		String userTopicFeat_file = resDir + "user_topic_feats.csv";
 		Savers.save(params.topicUser.toString(), userTopicFeat_file);

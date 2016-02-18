@@ -38,13 +38,13 @@ public class GD_Trainer {
 	 * @return local optimal parameters which give a local minimum of the objective function (minimum errors + regularizers)
 	 * @throws IOException 
 	 */
-	Parameters gradDescent(Parameters initParams, String resDir) throws IOException {
+	SocBIT_Params gradDescent(SocBIT_Params initParams, String resDir) throws IOException {
 		
 		System.out.println("Start training...");
 		System.out.println("Iter, Objective value");
 		
 		int numIter = 0;
-		Parameters cParams = new Parameters(initParams);
+		SocBIT_Params cParams = new SocBIT_Params(initParams);
 		double cValue = objValue(initParams);
 		System.out.println(numIter + ", " + cValue);
 		double difference = Double.POSITIVE_INFINITY;
@@ -57,24 +57,22 @@ public class GD_Trainer {
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
-			Parameters cGrad = gradCal.calGrad(cParams);
-			Parameters nParams = lineSearch(cParams, cGrad, cValue);
+			SocBIT_Params cGrad = gradCal.calGrad(cParams);
+			SocBIT_Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = objValue(nParams);
 			sbObjValue = sbObjValue.append(numIter + "," + nValue + "\n");
 			difference = nValue - cValue;
 			
 			// prep for next iter
-			cParams = new Parameters(nParams);						
+			cParams = new SocBIT_Params(nParams);						
 			cValue = nValue;
 			System.out.println(numIter + "," + cValue);
 		}
 		
 		if (!isLarge(difference)) {
-			System.out.println("Converged to a local minimum :)");
+			printConvergeMsg();
 			String fout = resDir + "obj_values.csv";
 			Savers.save(sbObjValue.toString(), fout);
-			System.out.println("Training done.");
-			System.out.println();
 		} else {
 			System.out.println("Not converged yet but already exceeded the maximum number of iterations. Training stopped!!!");
 		}
@@ -82,13 +80,19 @@ public class GD_Trainer {
 		return cParams;
 	}
 
+	private void printConvergeMsg() {
+		System.out.println("Converged to a local minimum :)");
+		System.out.println("Training done.");
+		System.out.println();
+	}
+
 	private boolean isLarge(double difference) {
 		return Math.abs(difference) > EPSILON;
 	}
 	
-	private Parameters lineSearch(Parameters cParams, Parameters cGrad, double cValue) {
+	private SocBIT_Params lineSearch(SocBIT_Params cParams, SocBIT_Params cGrad, double cValue) {
 		
-		Parameters nParams = new Parameters(cParams);
+		SocBIT_Params nParams = new SocBIT_Params(cParams);
 		boolean sufficentReduction = false;
 		
 		while (!sufficentReduction && (stepSize > EPSILON_STEP)) {
@@ -117,9 +121,9 @@ public class GD_Trainer {
 		}
 	}
 
-	private Parameters update(Parameters cParams, double stepSize, Parameters cGrad) {
+	private SocBIT_Params update(SocBIT_Params cParams, double stepSize, SocBIT_Params cGrad) {
 		
-		Parameters nParams = new Parameters(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
+		SocBIT_Params nParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
 		for (int u = 0; u < ds.numUser; u++) {
 			// user decision pref
 			nParams.userDecisionPrefs[u] = cParams.userDecisionPrefs[u] - stepSize * cGrad.userDecisionPrefs[u];
@@ -151,7 +155,7 @@ public class GD_Trainer {
 		return nParams;
 	}
 
-	private double objValue(Parameters params) {
+	private double objValue(SocBIT_Params params) {
 		
 		Estimator estimator = new Estimator(params);
 		RealMatrix estimated_ratings = estimator.socBIT_Ratings();
@@ -171,7 +175,7 @@ public class GD_Trainer {
 		return val;
 	}
 	
-	private double sqDiff(Parameters p1, Parameters p2) {
+	private double sqDiff(SocBIT_Params p1, SocBIT_Params p2) {
 
 		double sq_diff = square(p1.topicUser.subtract(p2.topicUser).getFrobeniusNorm());
 		sq_diff += square(p1.topicItem.subtract(p2.topicItem).getFrobeniusNorm());

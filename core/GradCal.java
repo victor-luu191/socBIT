@@ -25,11 +25,11 @@ public class GradCal {
 	
 	/**
 	 * Main work is here !!!
-	 * Compute the gradient at a given set of params, by computing all the components of the gradient
+	 * Compute the gradient at a given set of params by SocBIT model; by computing all the components of the gradient
 	 * @param params
 	 * @return the complete gradient with all its components
 	 */
-	Parameters calGrad(Parameters params) {
+	SocBIT_Params calGrad(SocBIT_Params params) {
 		
 		Estimator estimator = new Estimator(params);
 		estimated_ratings = estimator.socBIT_Ratings();
@@ -41,7 +41,7 @@ public class GradCal {
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);	// estimated_weights
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);					// estimated_ratings
 		
-		Parameters grad = new Parameters(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
+		SocBIT_Params grad = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
 		// gradients for users
 		for (int u = 0; u < ds.numUser; u++) {
 			grad.userDecisionPrefs[u] = userDecisionPrefDiff(params, u, rating_errors, edge_weight_errors);
@@ -65,7 +65,7 @@ public class GradCal {
 	 * @param ratingErr: errors of estimating ratings of the item
 	 * @return
 	 */
-	RealVector itemTopicGrad(Parameters params, int itemIndex, RealMatrix rating_errors) {
+	RealVector itemTopicGrad(SocBIT_Params params, int itemIndex, RealMatrix rating_errors) {
 		
 		RealVector curTopicGrad = params.topicItem.getColumnVector(itemIndex);
 		double topicLambda = hypers.topicLambda;
@@ -84,7 +84,7 @@ public class GradCal {
 		return nextTopicGrad;
 	}
 
-	RealVector itemBrandGrad(Parameters params, int itemIndex, RealMatrix rating_errors) {
+	RealVector itemBrandGrad(SocBIT_Params params, int itemIndex, RealMatrix rating_errors) {
 		
 		RealVector curBrandGrad = params.brandItem.getColumnVector(itemIndex);
 		double brandLambda = hypers.brandLambda;
@@ -112,7 +112,7 @@ public class GradCal {
 	 * @param strengthErr: errors in estimating strength of relationships of the user 
 	 * @return
 	 */
-	RealVector userTopicGrad(Parameters params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
+	RealVector userTopicGrad(SocBIT_Params params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
 		
 		RealVector curTopicGrad = params.topicUser.getColumnVector(u);
 		double topicLambda = hypers.topicLambda;
@@ -141,7 +141,7 @@ public class GradCal {
 		return nextTopicGrad;
 	}
 	
-	RealVector userBrandGrad(Parameters params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
+	RealVector userBrandGrad(SocBIT_Params params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
 		
 		RealVector curBrandGrad = params.brandUser.getColumnVector(u);
 		double brandLambda = hypers.brandLambda;
@@ -170,7 +170,7 @@ public class GradCal {
 		return nextBrandGrad;
 	}
 	
-	double userDecisionPrefDiff(Parameters params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
+	double userDecisionPrefDiff(SocBIT_Params params, int u, RealMatrix rating_errors, RealMatrix edge_weight_errors) {
 		
 		double userDecisionPref = params.userDecisionPrefs[u];
 		double decisionLambda = hypers.decisionLambda;

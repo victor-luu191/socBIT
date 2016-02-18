@@ -4,7 +4,7 @@ import org.apache.commons.math3.linear.*;
 
 class Estimator {
 	
-	private Parameters params;
+	private SocBIT_Params params;
 	
 	/**
 	 * fields derived from {@code params}
@@ -13,7 +13,7 @@ class Estimator {
 	private DiagonalMatrix decisionPrefs;
 	private RealMatrix idMat;
 
-	public Estimator(Parameters params) {
+	public Estimator(SocBIT_Params params) {
 		this.params = params;
 		decisionPrefs = new DiagonalMatrix(params.userDecisionPrefs);
 		numUser = params.brandUser.getColumnDimension();
@@ -65,8 +65,6 @@ class Estimator {
 //	RealMatrix soRecEdgeWeights() {
 //		
 //	}
-	
-	
 	
 	RealMatrix bound(RealMatrix matrix) {
 		return logisticMat(matrix);
