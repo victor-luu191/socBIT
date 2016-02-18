@@ -1,5 +1,6 @@
 package core;
 
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
@@ -15,6 +16,7 @@ public class GradCal {
 	Dataset ds;
 	private RealMatrix estimated_ratings;
 	private RealMatrix estimated_weights;
+	private double alpha;	// tuning parameter of STE only, control how much each user trusts himself vs. trust friends
 	
 	public GradCal(GD_Trainer trainer) {
 		
@@ -55,6 +57,27 @@ public class GradCal {
 			grad.brandItem.setColumnVector(i, itemBrandGrad(params, i, rating_errors));
 		}
 		
+		return grad;
+	}
+	
+	Params ste_Grad(Params params) {
+		STE_estimator ste_estimator = new STE_estimator(params, alpha);
+		estimated_ratings = ste_estimator.estRatings();
+		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
+		RealMatrix edge_weight_errors = new Array2DRowRealMatrix();	// just a dummy matrix as STE model don't estimate edge weights
+		
+		Params grad = new Params(ds.numUser, ds.numItem, numTopic);
+		// gradients for users
+		for (int u = 0; u < ds.numUser; u++) {
+			RealVector userTopicGrad = userTopicGrad(params, u, rating_errors, edge_weight_errors);
+			grad.topicUser.setColumnVector(u, userTopicGrad);
+		}
+		
+		// gradients for items
+		for (int i = 0; i < ds.numItem; i++) {
+			grad.topicItem.setColumnVector(i, itemTopicGrad(params, i, rating_errors));
+		}
 		return grad;
 	}
 	
@@ -102,8 +125,7 @@ public class GradCal {
 		return topicGrad;
 	}
 	
-	private RealVector socBIT_itemTopicGrad(SocBIT_Params params, int itemIndex,
-									RealMatrix rating_errors) {
+	private RealVector socBIT_itemTopicGrad(SocBIT_Params params, int itemIndex, RealMatrix rating_errors) {
 		
 		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
 		double topicLambda = hypers.topicLambda;
@@ -153,6 +175,7 @@ public class GradCal {
 	
 	private RealVector ste_itemTopicGrad(Params params, int itemIndex, RealMatrix rating_errors) {
 		// TODO Auto-generated method stub
+		
 		return null;
 	}
 
