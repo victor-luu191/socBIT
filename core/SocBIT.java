@@ -49,18 +49,17 @@ public class SocBIT {
 		
 		int minK = 5;
 		int maxK = 15;
-		String gtParamDir = dataDir + "true_params/";
-		Parameters gt_params = loadParams(gtParamDir);
-		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
+//		String gtParamDir = dataDir + "true_params/";
+//		Parameters gt_params = loadParams(gtParamDir);
+//		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			Parameters learned_params = train(ds, numTopic);
-			Errors errors = compDiff(learned_params, gt_params);
-//			"numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
-			errStr += numTopic + ","  + errors.topicUser + "," + errors.topicItem + "," + errors.brandUser + "," + errors.brandItem + "," + 
-						errors.decisionPrefs + "\n";
+//			Errors errors = compDiff(learned_params, gt_params);
+//			errStr += numTopic + ","  + errors.topicUser + "," + errors.topicItem + "," + errors.brandUser + "," + errors.brandItem + "," + 
+//						errors.decisionPrefs + "\n";
 		}	
-		String fErrors = "result/syn/N" + ds.numUser + "/unif/" + "/" ;
-		Savers.save(errStr, fErrors);
+//		String fErrors = "result/syn/N" + ds.numUser + "/unif/" + "/" ;
+//		Savers.save(errStr, fErrors);
 //		predict(learned_params, test_ds);
 	}
 	

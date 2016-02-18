@@ -53,7 +53,7 @@ public class GD_Trainer {
 		StringBuilder sbObjValue = new StringBuilder("iter, obj_value \n");
 		sbObjValue = sbObjValue.append(numIter + "," + cValue + "\n");
 		
-		GradCalculator gradCal = new GradCalculator(this);
+		GradCal gradCal = new GradCal(this);
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
@@ -154,8 +154,8 @@ public class GD_Trainer {
 	private double objValue(Parameters params) {
 		
 		Estimator estimator = new Estimator(params);
-		RealMatrix estimated_ratings = estimator.estRatings();
-		RealMatrix estimated_weights = estimator.estWeights();
+		RealMatrix estimated_ratings = estimator.socBIT_Ratings();
+		RealMatrix estimated_weights = estimator.socBIT_Weights();
 		
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(estimated_weights, ds.edge_weights);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(estimated_ratings, ds.ratings);
