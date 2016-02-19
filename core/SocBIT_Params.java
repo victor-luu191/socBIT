@@ -23,10 +23,10 @@ public class SocBIT_Params extends Params {
 	public SocBIT_Params(double[] userDecisionPrefs, RealMatrix topicUser,
 							RealMatrix brandUser, RealMatrix topicItem, RealMatrix brandItem) {
 		
+		super(topicUser, topicItem);
+		
 		this.userDecisionPrefs = userDecisionPrefs;
-		this.topicUser = topicUser;
 		this.brandUser = brandUser;
-		this.topicItem = topicItem;
 		this.brandItem = brandItem;
 	}
 
@@ -38,10 +38,11 @@ public class SocBIT_Params extends Params {
 	 * @param numBrand
 	 */
 	public SocBIT_Params(int numUser, int numItem, int numBrand, int numTopic) {
-		
+		super(numUser, numItem, numTopic);
 		initUserTopicFeats(numUser, numTopic);
-		initUserBrandFeats(numUser, numBrand);
 		initItemTopicFeats(numItem, numTopic);
+
+		initUserBrandFeats(numUser, numBrand);
 		initItemBrandFeats(numItem, numBrand);
 		
 		userDecisionPrefs = new double[numUser];
@@ -50,7 +51,17 @@ public class SocBIT_Params extends Params {
 		Arrays.fill(userDecisionPrefs, 0.5);	
 	}
 
+	public SocBIT_Params(SocBIT_Params params) {
+		
+		super(params.topicUser, params.topicItem);
+		
+		userDecisionPrefs = params.userDecisionPrefs;
+		brandUser = params.brandUser;
+		brandItem = params.brandItem;
+	}
+	
 	private void initItemBrandFeats(int numItem, int numBrand) {
+		
 		brandItem = new Array2DRowRealMatrix(numBrand, numItem);
 		RealVector unitVector = unitVector(numBrand);
 		RealVector smallVector = unitVector.mapMultiply(EPSILON);
@@ -60,6 +71,7 @@ public class SocBIT_Params extends Params {
 	}
 
 	private void initUserBrandFeats(int numUser, int numBrand) {
+		
 		brandUser = new Array2DRowRealMatrix(numBrand, numUser);
 		RealVector unitVector = unitVector(numBrand);
 		RealVector smallVector = unitVector.mapMultiply(EPSILON);
@@ -68,13 +80,5 @@ public class SocBIT_Params extends Params {
 		}
 	}
 
-	public SocBIT_Params(SocBIT_Params params) {
-		
-		userDecisionPrefs = params.userDecisionPrefs;
-		topicUser = params.topicUser;
-		brandUser = params.brandUser;
-		
-		topicItem = params.topicItem;
-		brandItem = params.brandItem;
-	}
+	
 }

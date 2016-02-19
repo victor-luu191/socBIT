@@ -16,6 +16,12 @@ public class Params {
 		topicItem = new Array2DRowRealMatrix(numTopic, numItem);
 	}
 
+	Params(RealMatrix topicUser, RealMatrix topicItem) {
+		// TODO Auto-generated constructor stub
+		this.topicItem = topicItem;
+		this.topicUser = topicUser;
+	}
+
 	protected void initItemTopicFeats(int numItem, int numTopic) {
 			
 	//		RealVector unitVector = unitVector(numTopic);
