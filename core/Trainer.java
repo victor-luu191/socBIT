@@ -40,18 +40,16 @@ public class Trainer {
 	 * @param initParams
 	 * @param resDir
 	 * @return local optimal parameters which give a local minimum of the objective function (minimum errors + regularizers)
-	 * @throws IOException 
-	 * @throws InvalidModelException 
+	 * @throws IOException, InvalidModelException and  ParamModelMismatchException
 	 */
-	SocBIT_Params gradDescent(SocBIT_Params initParams, String resDir) throws IOException, InvalidModelException {
+	Params gradDescent(Params initParams, String resDir) throws IOException, InvalidModelException, ParamModelMismatchException {
 		
 		printStartMsg();
 		int numIter = 0;
 //		StringBuilder sbParams = new StringBuilder("iter, ...");
 		StringBuilder sbObjValue = new StringBuilder("iter, obj_value \n");
-
 		
-		SocBIT_Params cParams = new SocBIT_Params(initParams);
+		Params cParams = buildParams(initParams, model);
 		double cValue = objValue(initParams);
 		sbObjValue = sbObjValue.append(numIter + "," + cValue + "\n");
 		System.out.println(numIter + ", " + cValue);
@@ -62,13 +60,13 @@ public class Trainer {
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
 			Params cGrad = gradCal.calculate(cParams, this.model);
-			SocBIT_Params nParams = lineSearch(cParams, cGrad, cValue);
+			Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = objValue(nParams);
 			sbObjValue = sbObjValue.append(numIter + "," + nValue + "\n");
 			difference = nValue - cValue;
 			
 			// prep for next iter
-			cParams = new SocBIT_Params(nParams);						
+			cParams = buildParams(nParams, model);						
 			cValue = nValue;
 			System.out.println(numIter + "," + cValue);
 		}
@@ -99,7 +97,7 @@ public class Trainer {
 		return Math.abs(difference) > EPSILON;
 	}
 	
-	private Params lineSearch(Params cParams, Params cGrad, double cValue) {
+	private Params lineSearch(Params cParams, Params cGrad, double cValue) throws ParamModelMismatchException, InvalidModelException {
 		
 		Params nParams = buildParams(cParams, this.model);
 		boolean sufficentReduction = false;
@@ -309,17 +307,51 @@ public class Trainer {
 		return rating_errors;
 	}
 	
-	private double sqDiff(SocBIT_Params p1, SocBIT_Params p2) {
+	private double sqDiff(Params p1, Params p2) throws InvalidModelException {
 
-		double sq_diff = square(p1.topicUser.subtract(p2.topicUser).getFrobeniusNorm());
-		sq_diff += square(p1.topicItem.subtract(p2.topicItem).getFrobeniusNorm());
-		sq_diff += square(p1.brandUser.subtract(p2.brandUser).getFrobeniusNorm());
-		sq_diff += square(p1.brandItem.subtract(p2.brandItem).getFrobeniusNorm());
-		for (int u = 0; u < ds.numUser; u++) {
-			sq_diff += square(p1.userDecisionPrefs[u] - p2.userDecisionPrefs[u]);
+		if (model.equalsIgnoreCase("socBIT")) {
+			return socBIT_Diff((SocBIT_Params) p1, (SocBIT_Params) p2);
+		} else {
+			if (model.equalsIgnoreCase("STE")) {
+				return ste_Diff(p1, p2);
+			} else {
+				throw new InvalidModelException();
+			}
 		}
+		
+	}
 
-		return sq_diff;
+	private double ste_Diff(Params p1, Params p2) {
+		return topicDiff(p1, p2);
+	}
+
+	private double socBIT_Diff(SocBIT_Params p1, SocBIT_Params p2) {
+		double topicDiff = topicDiff(p1, p2);
+		double brandDiff = brandDiff(p1, p2);
+		double decisionDiff = decisionDiff(p1, p2);
+		double sqDiff = topicDiff + brandDiff + decisionDiff;
+		return sqDiff;
+	}
+
+	private double decisionDiff(SocBIT_Params p1, SocBIT_Params p2) {
+		double decisionDiff = 0;
+		for (int u = 0; u < ds.numUser; u++) {
+			decisionDiff += square(p1.userDecisionPrefs[u] - p2.userDecisionPrefs[u]);
+		}
+		return decisionDiff;
+	}
+
+	private double brandDiff(SocBIT_Params p1, SocBIT_Params p2) {
+		double brandDiff = square(p1.brandUser.subtract(p2.brandUser).getFrobeniusNorm());
+		brandDiff += square(p1.brandItem.subtract(p2.brandItem).getFrobeniusNorm());
+		return brandDiff;
+	}
+
+	private double topicDiff(Params p1, Params p2) {
+		
+		double topicDiff = square(p1.topicUser.subtract(p2.topicUser).getFrobeniusNorm());
+		topicDiff += square(p1.topicItem.subtract(p2.topicItem).getFrobeniusNorm());
+		return topicDiff;
 	}
 	
 	private double square(double d) {
