@@ -7,6 +7,7 @@ import org.apache.commons.math3.linear.RealVector;
 
 import defs.Dataset;
 import defs.Hypers;
+import defs.InvalidModelException;
 
 public class GradCal {
 	
@@ -18,11 +19,27 @@ public class GradCal {
 	private RealMatrix estimated_weights;
 	private double alpha;	// tuning parameter of STE only, control how much each user trusts himself vs. trust friends
 	
-	public GradCal(GD_Trainer trainer) {
+	public GradCal(Trainer trainer) {
 		
 		numTopic = trainer.numTopic;
 		ds = trainer.ds;
 		hypers = trainer.hypers;
+	}
+	
+	// model is the trainer's model
+	Params calculate(Params params, String model) throws InvalidModelException {
+		if (model.equalsIgnoreCase("socBIT")) {
+			SocBIT_Params castParams = (SocBIT_Params) params;
+			return socBIT_Grad(castParams);
+		} 
+		else {
+			if (model.equalsIgnoreCase("STE")) {
+				return ste_Grad(params);
+			} 
+			else {
+				throw new InvalidModelException();
+			}
+		}
 	}
 	
 	/**
@@ -198,7 +215,8 @@ public class GradCal {
 
 	private RealVector ste_userTopicGrad(Params params, int u, RealMatrix rating_errors) {
 		
-		RealVector userTopicGrad = params.topicUser.getColumnVector(u);
+		RealVector userTopicFeats = params.topicUser.getColumnVector(u);
+		RealVector userTopicGrad = userTopicFeats.mapMultiply(hypers.topicLambda);
 		
 		RealVector personal_part = compPersonalPart(u, params, rating_errors);
 		RealVector influenceePart = compInfluenceePart(u, params, rating_errors);
