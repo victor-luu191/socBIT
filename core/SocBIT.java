@@ -23,6 +23,8 @@ import org.apache.commons.math3.linear.RealVector;
 import defs.Dataset;
 import defs.Errors;
 import defs.Hypers;
+import defs.InvalidModelException;
+import defs.ParamModelMismatchException;
 
 public class SocBIT {
 
@@ -35,7 +37,7 @@ public class SocBIT {
 	static Dataset test_ds;
 	
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, InvalidModelException, ParamModelMismatchException {
 		
 		// temporary value passing, later will read from file data_stats or itemInfo
 		int numUser = 1000;
@@ -53,8 +55,9 @@ public class SocBIT {
 //		Parameters gt_params = loadParams(gtParamDir);
 //		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
-			Params learned_params = train(ds, numTopic);
-//			Errors errors = compDiff(learned_params, gt_params);
+			Params socBIT_params = trainBySocBIT(ds, numTopic);
+			Params ste_params = trainBySTE(ds, numTopic);
+//			Errors errors = compDiff(socBIT_params, gt_params);
 //			errStr += numTopic + ","  + errors.topicUser + "," + errors.topicItem + "," + errors.brandUser + "," + errors.brandItem + "," + 
 //						errors.decisionPrefs + "\n";
 		}	
@@ -63,6 +66,20 @@ public class SocBIT {
 //		predict(learned_params, test_ds);
 	}
 	
+	private static Params trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
+		
+		String resDir = "result/syn/N" + ds.numUser + "/STE/numTopic" + numTopic + "/" ; // "/unif/numTopic" + numTopic + "/"
+		if (!Files.exists(Paths.get(resDir))) {
+			Files.createDirectories(Paths.get(resDir));
+		} 
+		
+		Trainer trainer = initTrainer("STE", ds, numTopic);	// currently training on whole data set, switch to training set later	
+		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
+		Params learned_params = trainer.gradDescent(initParams, resDir);
+//		save(learned_params, resDir);
+		return learned_params;
+	}
+
 	private static Errors compDiff(SocBIT_Params params1, SocBIT_Params params2) {
 		
 		double topicUserErr = params1.topicUser.subtract(params2.topicUser).getFrobeniusNorm();
@@ -139,18 +156,17 @@ public class SocBIT {
 		return prefs;
 	}
 
-	private static Params train(Dataset ds, int numTopic) throws IOException {
+	private static Params trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
 		
-		GD_Trainer gd_trainer = init_GD_Trainer(ds, numTopic);	// currently training on whole data set, switch to training set later	
-		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, gd_trainer.numTopic);
-		
-		String resDir = "result/syn/N" + ds.numUser + "/unif/numTopic" + numTopic + "/" ;
+		String resDir = "result/syn/N" + ds.numUser + "/socBIT/numTopic" + numTopic + "/" ; // "/unif/numTopic" + numTopic + "/"
 		if (!Files.exists(Paths.get(resDir))) {
 			Files.createDirectories(Paths.get(resDir));
 		} 
 		
-		SocBIT_Params learned_params = gd_trainer.gradDescent(initParams, resDir);
-		save(learned_params, resDir);
+		Trainer trainer = initTrainer("socBIT", ds, numTopic);	// currently training on whole data set, switch to training set later	
+		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
+		Params learned_params = trainer.gradDescent(initParams, resDir);
+//		save(learned_params, resDir);
 		return learned_params;
 	}
 	/**
@@ -181,21 +197,49 @@ public class SocBIT {
 		Savers.save(Arrays.toString(params.userDecisionPrefs), decisionPref_file);
 	}
 
-	private static GD_Trainer init_GD_Trainer(Dataset ds, int numTopic) {
+	private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
+		
+		int maxIter = 100;
+		
+		Hypers hypers = null;
+		if (model.equalsIgnoreCase("socBIT")) {
+			hypers = assignHypers4SocBIT();
+			System.out.println("Initializing a regularized trainer for SocBIT model. The trainer is assigned " + numTopic + " topics.");
+			printRegConst(hypers);
+		} 
+		else {
+			if (model.equalsIgnoreCase("STE")) {
+				hypers = assignHypers4STE();
+				System.out.println("Initializing a regularized trainer for STE model. The trainer is assigned " + numTopic + " topics.");
+			} else {
+				throw new InvalidModelException();
+			}
+		}
+		
+		Trainer trainer = new Trainer(model, ds, numTopic, hypers, maxIter);
+		return trainer;
+	}
+
+	private static void printRegConst(Hypers hypers) {
+		System.out.println("Regularization constants: ");
+		System.out.println("topicLambda, brandLambda, weightLambda, decisionLambda" );
+		System.out.println(hypers.topicLambda + "," + hypers.brandLambda + "," + hypers.weightLambda + "," + hypers.decisionLambda);
+	}
+
+	private static Hypers assignHypers4STE() {
+		double topicLambda = 10;
+		double alpha = 0.5;
+		// TODO Auto-generated method stub
+		return new Hypers(topicLambda, alpha);
+	}
+
+	private static Hypers assignHypers4SocBIT() {
 		double topicLambda = 10;
 		double brandLambda = 100;
 		double weightLambda = 100;
 		double decisionLambda = 10;
-		Hypers hypers = new Hypers(topicLambda, brandLambda, weightLambda, decisionLambda);
-		int maxIter = 100;
-		GD_Trainer gdTrainer = new GD_Trainer(ds, numTopic, hypers, maxIter);
-		
-		System.out.println("Initialized a regularized GD trainer with " + numTopic + " topics.");
-//		System.out.println("Regularization constants: ");
-//		System.out.println("topicLambda, brandLambda, weightLambda, decisionLambda" );
-//		System.out.println(topicLambda + "," + brandLambda + "," + weightLambda + "," + decisionLambda);
-		
-		return gdTrainer;
+		Hypers hypers = Hypers.setBySocBIT(topicLambda, brandLambda, weightLambda, decisionLambda);
+		return hypers;
 	}
 
 	/**
