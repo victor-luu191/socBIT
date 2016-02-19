@@ -9,8 +9,10 @@ import org.apache.commons.math3.linear.RealVector;
 
 import defs.Dataset;
 import defs.Hypers;
+import defs.InvalidModelException;
+import defs.ParamModelMismatchException;
 
-public class GD_Trainer {
+public class Trainer {
 	
 	private static final double EPSILON = 1;
 	private static final double ALPHA = 0.5;
@@ -18,13 +20,15 @@ public class GD_Trainer {
 	private static final double EPSILON_STEP = Math.pow(10, -10);
 	
 	Dataset ds;
+	
 	// settings of this trainer
+	String model;
 	int numTopic;
 	Hypers hypers;
 	private int maxIter;
 	private double stepSize;
 	
-	public GD_Trainer(Dataset ds, int numTopic, Hypers hypers, int maxIter) {
+	public Trainer(Dataset ds, int numTopic, Hypers hypers, int maxIter) {
 		this.ds = ds;
 		this.numTopic = numTopic;
 		this.hypers = hypers;
@@ -37,27 +41,27 @@ public class GD_Trainer {
 	 * @param resDir
 	 * @return local optimal parameters which give a local minimum of the objective function (minimum errors + regularizers)
 	 * @throws IOException 
+	 * @throws InvalidModelException 
 	 */
-	SocBIT_Params gradDescent(SocBIT_Params initParams, String resDir) throws IOException {
+	SocBIT_Params gradDescent(SocBIT_Params initParams, String resDir) throws IOException, InvalidModelException {
 		
-		System.out.println("Start training...");
-		System.out.println("Iter, Objective value");
-		
+		printStartMsg();
 		int numIter = 0;
-		SocBIT_Params cParams = new SocBIT_Params(initParams);
-		double cValue = objValue(initParams);
-		System.out.println(numIter + ", " + cValue);
-		double difference = Double.POSITIVE_INFINITY;
-		
 //		StringBuilder sbParams = new StringBuilder("iter, ...");
 		StringBuilder sbObjValue = new StringBuilder("iter, obj_value \n");
+
+		
+		SocBIT_Params cParams = new SocBIT_Params(initParams);
+		double cValue = objValue(initParams);
 		sbObjValue = sbObjValue.append(numIter + "," + cValue + "\n");
+		System.out.println(numIter + ", " + cValue);
+		double difference = Double.POSITIVE_INFINITY;
 		
 		GradCal gradCal = new GradCal(this);
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
-			SocBIT_Params cGrad = gradCal.socBIT_Grad(cParams);
+			Params cGrad = gradCal.calculate(cParams, this.model);
 			SocBIT_Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = objValue(nParams);
 			sbObjValue = sbObjValue.append(numIter + "," + nValue + "\n");
@@ -80,6 +84,11 @@ public class GD_Trainer {
 		return cParams;
 	}
 
+	private void printStartMsg() {
+		System.out.println("Start training...");
+		System.out.println("Iter, Objective value");
+	}
+
 	private void printConvergeMsg() {
 		System.out.println("Converged to a local minimum :)");
 		System.out.println("Training done.");
@@ -90,9 +99,9 @@ public class GD_Trainer {
 		return Math.abs(difference) > EPSILON;
 	}
 	
-	private SocBIT_Params lineSearch(SocBIT_Params cParams, SocBIT_Params cGrad, double cValue) {
+	private SocBIT_Params lineSearch(Params cParams, Params cGrad, double cValue) {
 		
-		SocBIT_Params nParams = new SocBIT_Params(cParams);
+		Params nParams = buildParams(cParams, this.model);
 		boolean sufficentReduction = false;
 		
 		while (!sufficentReduction && (stepSize > EPSILON_STEP)) {
@@ -121,9 +130,76 @@ public class GD_Trainer {
 		}
 	}
 
-	private SocBIT_Params update(SocBIT_Params cParams, double stepSize, SocBIT_Params cGrad) {
+	private Params buildParams(Params cParams, String model) throws ParamModelMismatchException, InvalidModelException {
 		
-		SocBIT_Params nParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
+		if (model.equalsIgnoreCase("STE")) {
+			return cParams;
+		} 
+		else {
+			if (model.equalsIgnoreCase("socBIT")) {
+				if (cParams instanceof SocBIT_Params) {
+					return (SocBIT_Params) cParams;
+				} 
+				else {
+					String msg = "Input params type and model mismatch!!!";
+					throw new ParamModelMismatchException(msg);
+				}
+			} 
+			else {
+				throw new InvalidModelException();
+			}
+		}
+		
+	}
+
+	private Params update(Params cParams, double stepSize, SocBIT_Params cGrad) {
+		
+		Params nParams = buildParams(cParams, model);
+		
+		updateUserComponents(cParams, nParams, cGrad, stepSize);
+		updateItemComponents(cParams, nParams, cGrad, stepSize);
+		
+		return nParams;
+	}
+
+	private void updateItemComponents(Params cParams, Params nParams, Params cGrad, double stepSize) {
+		
+		if (cParams instanceof SocBIT_Params) {// nParams instanceof SocBIT_Params
+			updateItemParamsBySocBIT( (SocBIT_Params) cParams, (SocBIT_Params) nParams, (SocBIT_Params) cGrad, stepSize);
+		} 
+		else {
+			updateItemParamsBySTE(cParams, nParams, cGrad, stepSize);
+		}
+	}
+
+	private void updateItemParamsBySTE(Params cParams, Params nParams, Params cGrad, double stepSize) {
+		
+		for (int i = 0; i < ds.numItem; i++) {
+			RealVector curTopicFeat = cParams.topicItem.getColumnVector(i);
+			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
+			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
+			nParams.topicItem.setColumnVector(i, nextTopicFeat);
+		}
+	}
+
+	private void updateItemParamsBySocBIT(SocBIT_Params cParams, SocBIT_Params nParams, SocBIT_Params cGrad, double stepSize) {
+		
+		for (int i = 0; i < ds.numItem; i++) {
+			// topic component
+			RealVector curTopicFeat = cParams.topicItem.getColumnVector(i);
+			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
+			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
+			nParams.topicItem.setColumnVector(i, nextTopicFeat);
+			// brand component
+			RealVector curBrandFeat = cParams.brandItem.getColumnVector(i);
+			RealVector brandDescent = cGrad.brandItem.getColumnVector(i).mapMultiply(-stepSize);
+			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
+			nParams.brandItem.setColumnVector(i, nextBrandFeat);
+		}
+	}
+
+	private void updateUserComponents(SocBIT_Params cParams, SocBIT_Params nParams, SocBIT_Params cGrad, double stepSize) {
+		
 		for (int u = 0; u < ds.numUser; u++) {
 			// user decision pref
 			nParams.userDecisionPrefs[u] = cParams.userDecisionPrefs[u] - stepSize * cGrad.userDecisionPrefs[u];
@@ -138,21 +214,6 @@ public class GD_Trainer {
 			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
 			nParams.brandUser.setColumnVector(u, nextBrandFeat);
 		}
-		
-		for (int i = 0; i < ds.numItem; i++) {
-			// topic component
-			RealVector curTopicFeat = cParams.topicItem.getColumnVector(i);
-			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicItem.setColumnVector(i, nextTopicFeat);
-			// brand component
-			RealVector curBrandFeat = cParams.brandItem.getColumnVector(i);
-			RealVector brandDescent = cGrad.brandItem.getColumnVector(i).mapMultiply(-stepSize);
-			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
-			nParams.brandItem.setColumnVector(i, nextBrandFeat);
-		}
-		
-		return nParams;
 	}
 
 	private double objValue(SocBIT_Params params) {
