@@ -196,6 +196,32 @@ public class GradCal {
 		return itemTopicGrad;
 	}
 
+	private RealVector ste_userTopicGrad(Params params, int u, RealMatrix rating_errors) {
+		
+		RealVector userTopicGrad = params.topicUser.getColumnVector(u);
+		// TODO Auto-generated method stub
+		RealVector personal_part = compPersonalPart(u, params, rating_errors);
+		
+		RealVector friendsPart = new ArrayRealVector(numTopic);
+		
+		userTopicGrad = personal_part.mapMultiply(alpha).add(friendsPart.mapMultiply(1 - alpha)); 
+		return userTopicGrad;
+	}
+
+	private RealVector compPersonalPart(int u, Params params,
+			RealMatrix rating_errors) {
+		RealVector personal_part = new ArrayRealVector(numTopic);
+		for (int i = 0; i < ds.numItem; i++) {
+			RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
+			if (rating_errors.getEntry(u, i) > 0) {
+				double logisDiff = logisDiff(estimated_ratings.getEntry(u, i));
+				double oneRatingErr = rating_errors.getEntry(u, i);
+				personal_part = personal_part.add(itemTopicFeats.mapMultiply(oneRatingErr).mapMultiply(logisDiff));
+			}
+		}
+		return personal_part;
+	}
+
 	private RealVector comboFeat(RealVector userTopicFeats, int u, Params params) {
 		RealVector combo_feat = userTopicFeats.mapMultiply(alpha);
 		RealVector friendFeats = new ArrayRealVector(numTopic);
@@ -209,13 +235,6 @@ public class GradCal {
 		combo_feat = combo_feat.add(friendFeats.mapMultiply(1 - alpha));
 		return combo_feat;
 	}
-
-	private RealVector ste_userTopicGrad(Params params, int u, RealMatrix rating_errors) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	
 	
 	RealVector itemBrandGrad(SocBIT_Params params, int itemIndex, RealMatrix rating_errors) {
 
