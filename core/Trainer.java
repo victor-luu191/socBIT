@@ -28,7 +28,8 @@ public class Trainer {
 	private int maxIter;
 	private double stepSize;
 	
-	public Trainer(Dataset ds, int numTopic, Hypers hypers, int maxIter) {
+	public Trainer(String model, Dataset ds, int numTopic, Hypers hypers, int maxIter) {
+		this.model = model;
 		this.ds = ds;
 		this.numTopic = numTopic;
 		this.hypers = hypers;
