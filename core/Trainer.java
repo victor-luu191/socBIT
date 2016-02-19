@@ -15,7 +15,7 @@ import defs.ParamModelMismatchException;
 public class Trainer {
 	
 	private static final double EPSILON = 1;
-	private static final double ALPHA = 0.5;
+	private static final double INVERSE_STEP = 0.5;
 	private static final double GAMMA = Math.pow(10, -4);
 	private static final double EPSILON_STEP = Math.pow(10, -10);
 	
@@ -33,7 +33,7 @@ public class Trainer {
 		this.numTopic = numTopic;
 		this.hypers = hypers;
 		this.maxIter = maxIter;
-		stepSize = 1/ALPHA;
+		stepSize = 1/INVERSE_STEP;
 	}
 	
 	/**
@@ -99,13 +99,13 @@ public class Trainer {
 		return Math.abs(difference) > EPSILON;
 	}
 	
-	private SocBIT_Params lineSearch(Params cParams, Params cGrad, double cValue) {
+	private Params lineSearch(Params cParams, Params cGrad, double cValue) {
 		
 		Params nParams = buildParams(cParams, this.model);
 		boolean sufficentReduction = false;
 		
 		while (!sufficentReduction && (stepSize > EPSILON_STEP)) {
-			stepSize = stepSize * ALPHA;
+			stepSize = stepSize * INVERSE_STEP;
 			nParams = update(cParams, stepSize, cGrad);
 			// todo: may need some projection here to guarantee some constraints
 			double funcDiff = objValue(nParams) - cValue;
@@ -124,7 +124,7 @@ public class Trainer {
 			return nParams;
 		} else {
 			System.out.println("Cannot find new params with sufficient reduction. "
-					+ "Line search stopped due to step size too small");
+								+ "Line search stopped due to step size too small");
 			
 			return cParams;
 		}
@@ -152,7 +152,7 @@ public class Trainer {
 		
 	}
 
-	private Params update(Params cParams, double stepSize, SocBIT_Params cGrad) throws ParamModelMismatchException, InvalidModelException {
+	private Params update(Params cParams, double stepSize, Params cGrad) throws ParamModelMismatchException, InvalidModelException {
 		
 		Params nParams = buildParams(cParams, model);
 		
@@ -242,15 +242,40 @@ public class Trainer {
 		}
 	}
 
-	private double objValue(SocBIT_Params params) {
+	private double objValue(Params params) throws InvalidModelException {
 		
-		SocBIT_Estimator socBIT_Estimator = new SocBIT_Estimator(params);
-		RealMatrix estimated_ratings = socBIT_Estimator.estRatings();
-		RealMatrix estimated_weights = socBIT_Estimator.estWeights();
+		double val ;
+		if (model.equalsIgnoreCase("socBIT")) {
+			val = valueBySocBIT((SocBIT_Params) params);
+		} 
+		else {
+			if (model.equalsIgnoreCase("STE")) {
+				val = valueBySTE(params);
+			} else {
+				throw new InvalidModelException();
+			}
+		}
 		
-		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(estimated_weights, ds.edge_weights);
-		RealMatrix rating_errors = ErrorCal.ratingErrors(estimated_ratings, ds.ratings);
+		return val;
+	}
+
+	private double valueBySTE(Params params) {
 		
+		double userFeatsNorm = params.topicUser.getFrobeniusNorm();
+		double itemFeatsNorm = params.topicItem.getFrobeniusNorm();
+		double val = hypers.topicLambda * (square(userFeatsNorm) + square(itemFeatsNorm));	// regularized part
+		
+		RealMatrix rating_errors = ste_ratingErrors(params);
+		val += square(rating_errors.getFrobeniusNorm());;
+		return val;
+	}
+
+	private double valueBySocBIT(SocBIT_Params params) {
+
+		SocBIT_Estimator estimator = new SocBIT_Estimator(params);
+		RealMatrix rating_errors = socBIT_ratingErrors(estimator);
+		RealMatrix edge_weight_errors = socBIT_edgeWeightErrors(estimator);
+
 		double val = square(rating_errors.getFrobeniusNorm());
 		val += hypers.weightLambda * square(edge_weight_errors.getFrobeniusNorm());
 		val += hypers.topicLambda * ( square(params.topicUser.getFrobeniusNorm()) + square(params.topicItem.getFrobeniusNorm()) );
@@ -258,8 +283,30 @@ public class Trainer {
 		for (int u = 0; u < ds.numUser; u++) {
 			val += hypers.decisionLambda * square(params.userDecisionPrefs[u] - 0.5);
 		}
-		
 		return val;
+	}
+	
+	private RealMatrix ste_ratingErrors(Params params) {
+		
+		STE_estimator ste_estimator = new STE_estimator(params, hypers.alpha, ds.edge_weights);
+		RealMatrix estimated_ratings = ste_estimator.estRatings();
+		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
+		return rating_errors;
+	}
+
+	private RealMatrix socBIT_edgeWeightErrors(SocBIT_Estimator estimator) {
+		RealMatrix estimated_weights = estimator.estWeights();
+		RealMatrix bounded_weights = UtilFuncs.bound(estimated_weights);
+		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);
+		return edge_weight_errors;
+	}
+
+	private RealMatrix socBIT_ratingErrors(SocBIT_Estimator estimator) {
+		RealMatrix estimated_ratings = estimator.estRatings();
+		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
+		return rating_errors;
 	}
 	
 	private double sqDiff(SocBIT_Params p1, SocBIT_Params p2) {
