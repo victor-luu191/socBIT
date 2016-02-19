@@ -152,7 +152,7 @@ public class Trainer {
 		
 	}
 
-	private Params update(Params cParams, double stepSize, SocBIT_Params cGrad) {
+	private Params update(Params cParams, double stepSize, SocBIT_Params cGrad) throws ParamModelMismatchException, InvalidModelException {
 		
 		Params nParams = buildParams(cParams, model);
 		
@@ -164,11 +164,13 @@ public class Trainer {
 
 	private void updateItemComponents(Params cParams, Params nParams, Params cGrad, double stepSize) {
 		
-		if (cParams instanceof SocBIT_Params) {// nParams instanceof SocBIT_Params
+		if (model.equalsIgnoreCase("socBIT")) {//cParams instanceof SocBIT_Params && nParams instanceof SocBIT_Params
 			updateItemParamsBySocBIT( (SocBIT_Params) cParams, (SocBIT_Params) nParams, (SocBIT_Params) cGrad, stepSize);
 		} 
 		else {
-			updateItemParamsBySTE(cParams, nParams, cGrad, stepSize);
+			if (model.equalsIgnoreCase("STE")) {
+				updateItemParamsBySTE(cParams, nParams, cGrad, stepSize);
+			}
 		}
 	}
 
@@ -198,7 +200,31 @@ public class Trainer {
 		}
 	}
 
-	private void updateUserComponents(SocBIT_Params cParams, SocBIT_Params nParams, SocBIT_Params cGrad, double stepSize) {
+	private void updateUserComponents(Params cParams, Params nParams, Params cGrad, double stepSize) {
+		
+		if (model.equalsIgnoreCase("socBIT")) {
+			updateUserParamsBySocBIT((SocBIT_Params) cParams, (SocBIT_Params) nParams, (SocBIT_Params) cGrad, stepSize);
+		} 
+		else {
+			if (model.equalsIgnoreCase("STE")) {
+				updateUserParamsBySTE(cParams, nParams, cGrad, stepSize);
+			}
+		}
+	}
+
+	private void updateUserParamsBySTE(Params cParams, Params nParams, Params cGrad, double stepSize) {
+		
+		for (int u = 0; u < ds.numUser; u++) {
+			
+			RealVector curTopicFeat = cParams.topicUser.getColumnVector(u);
+			RealVector topicDescent = cGrad.topicUser.getColumnVector(u).mapMultiply( -stepSize);
+			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
+			nParams.topicUser.setColumnVector(u, nextTopicFeat);
+		}
+	}
+
+	private void updateUserParamsBySocBIT(SocBIT_Params cParams,
+			SocBIT_Params nParams, SocBIT_Params cGrad, double stepSize) {
 		
 		for (int u = 0; u < ds.numUser; u++) {
 			// user decision pref
