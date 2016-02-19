@@ -199,13 +199,33 @@ public class GradCal {
 	private RealVector ste_userTopicGrad(Params params, int u, RealMatrix rating_errors) {
 		
 		RealVector userTopicGrad = params.topicUser.getColumnVector(u);
-		// TODO Auto-generated method stub
+		
 		RealVector personal_part = compPersonalPart(u, params, rating_errors);
+		RealVector influenceePart = compInfluenceePart(u, params, rating_errors);
 		
-		RealVector friendsPart = new ArrayRealVector(numTopic);
-		
-		userTopicGrad = personal_part.mapMultiply(alpha).add(friendsPart.mapMultiply(1 - alpha)); 
+		userTopicGrad = personal_part.mapMultiply(alpha).add(influenceePart.mapMultiply(1 - alpha)); 
 		return userTopicGrad;
+	}
+
+	private RealVector compInfluenceePart(int u, Params params,
+			RealMatrix rating_errors) {
+		// influencee: those who are influenced by/trust u, thus include u's feat in their rating
+		RealVector influenceePart = new ArrayRealVector(numTopic);	
+		for (int v = 0; v < ds.numUser; v++) {
+			double influencedLevel = ds.edge_weights.getEntry(u, v);
+			if (influencedLevel > 0) {
+				for (int i = 0; i < ds.numItem; i++) {
+					double oneRatingErr = rating_errors.getEntry(v, i);
+					if (oneRatingErr > 0) {
+						RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
+						double logisDiff = logisDiff(estimated_ratings.getEntry(v, i));
+						double weight = influencedLevel * oneRatingErr * logisDiff;
+						influenceePart = influenceePart.add(itemTopicFeats.mapMultiply(weight));
+					}
+				}
+			}
+		}
+		return influenceePart;
 	}
 
 	private RealVector compPersonalPart(int u, Params params,
