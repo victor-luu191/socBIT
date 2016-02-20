@@ -17,13 +17,17 @@ public class GradCal {
 	Dataset ds;
 	private RealMatrix estimated_ratings;
 	private RealMatrix estimated_weights;
-	private double alpha;	// tuning parameter of STE only, control how much each user trusts himself vs. trust friends
+
+	// this alpha is redundant (it is already included in hypers), but for later brevity, we allow this redundancy
+	// for the meaning of alpha, see in hypers
+	private double alpha;	   
 	
 	public GradCal(Trainer trainer) {
 		
 		numTopic = trainer.numTopic;
 		ds = trainer.ds;
 		hypers = trainer.hypers;
+		this.alpha = hypers.alpha;
 	}
 	
 	// model is the trainer's model
@@ -79,7 +83,7 @@ public class GradCal {
 	
 	Params ste_Grad(Params params) {
 		
-		STE_estimator ste_estimator = new STE_estimator(params, alpha, ds.edge_weights);
+		STE_estimator ste_estimator = new STE_estimator(params, hypers.alpha, ds.edge_weights);
 		estimated_ratings = ste_estimator.estRatings();
 		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
@@ -261,6 +265,7 @@ public class GradCal {
 	}
 
 	private RealVector comboFeat(RealVector userTopicFeats, int u, Params params) {
+		
 		RealVector combo_feat = userTopicFeats.mapMultiply(alpha);
 		RealVector friendFeats = new ArrayRealVector(numTopic);
 		for (int v = 0; v < ds.numUser; v++) {

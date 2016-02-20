@@ -43,13 +43,12 @@ class STE_estimator {
 	}
 
 	RealMatrix estRatings() {
-		// TODO Auto-generated method stub
 		RealMatrix estimated_ratings = new Array2DRowRealMatrix(numUser, numItem);
 		for (int u = 0; u < numUser; u++) {
 			for (int i = 0; i < numItem; i++) {
 				estimated_ratings.setEntry(u, i, estOneRating(u, i, edge_weights));
 			}
 		}
-		return null;
+		return estimated_ratings;
 	}
 }
