@@ -26,7 +26,7 @@ import defs.Hypers;
 import defs.InvalidModelException;
 import defs.ParamModelMismatchException;
 
-public class SocBIT {
+public class Experiments {
 
 	
 	private static int maxNumUser = 2000;
@@ -55,8 +55,10 @@ public class SocBIT {
 //		Parameters gt_params = loadParams(gtParamDir);
 //		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
+			
 			Params socBIT_params = trainBySocBIT(ds, numTopic);
 			Params ste_params = trainBySTE(ds, numTopic);
+			
 //			Errors errors = compDiff(socBIT_params, gt_params);
 //			errStr += numTopic + ","  + errors.topicUser + "," + errors.topicItem + "," + errors.brandUser + "," + errors.brandItem + "," + 
 //						errors.decisionPrefs + "\n";
@@ -68,13 +70,15 @@ public class SocBIT {
 	
 	private static Params trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
 		
+		System.out.println("Training by STE model...");
+		
 		String resDir = "result/syn/N" + ds.numUser + "/STE/numTopic" + numTopic + "/" ; // "/unif/numTopic" + numTopic + "/"
 		if (!Files.exists(Paths.get(resDir))) {
 			Files.createDirectories(Paths.get(resDir));
 		} 
 		
 		Trainer trainer = initTrainer("STE", ds, numTopic);	// currently training on whole data set, switch to training set later	
-		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
+		Params initParams = new Params(ds.numUser, ds.numItem, trainer.numTopic);
 		Params learned_params = trainer.gradDescent(initParams, resDir);
 //		save(learned_params, resDir);
 		return learned_params;
@@ -157,6 +161,8 @@ public class SocBIT {
 	}
 
 	private static Params trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
+		
+		System.out.println("Training by socBIT model...");
 		
 		String resDir = "result/syn/N" + ds.numUser + "/socBIT/numTopic" + numTopic + "/" ; // "/unif/numTopic" + numTopic + "/"
 		if (!Files.exists(Paths.get(resDir))) {
