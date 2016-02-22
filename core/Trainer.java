@@ -122,7 +122,7 @@ public class Trainer {
 //			System.out.println("Found new params with sufficient reduction");
 			return nParams;
 		} else {
-			System.out.println("Cannot find new params with sufficient reduction. "
+			System.out.println("Cannot find better new params  (i.e. with sufficient reduction). "
 								+ "Line search stopped due to step size too small");
 			
 			return cParams;
