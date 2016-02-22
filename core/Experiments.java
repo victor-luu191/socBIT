@@ -56,7 +56,7 @@ public class Experiments {
 //		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
-			Params socBIT_params = trainBySocBIT(ds, numTopic);
+//			Params socBIT_params = trainBySocBIT(ds, numTopic);
 			Params ste_params = trainBySTE(ds, numTopic);
 			
 //			Errors errors = compDiff(socBIT_params, gt_params);
@@ -79,6 +79,7 @@ public class Experiments {
 		
 		Trainer trainer = initTrainer("STE", ds, numTopic);	// currently training on whole data set, switch to training set later	
 		Params initParams = new Params(ds.numUser, ds.numItem, trainer.numTopic);
+		initParams.createFeatsUniformly();
 		Params learned_params = trainer.gradDescent(initParams, resDir);
 //		save(learned_params, resDir);
 		return learned_params;
@@ -216,7 +217,7 @@ public class Experiments {
 		else {
 			if (model.equalsIgnoreCase("STE")) {
 				hypers = assignHypers4STE();
-				System.out.println("Initializing a regularized trainer for STE model. The trainer is assigned " + numTopic + " topics.");
+				System.out.println("The trainer is assigned " + numTopic + " topics.");
 			} else {
 				throw new InvalidModelException();
 			}
