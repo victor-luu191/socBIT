@@ -1,8 +1,10 @@
 package core;
 
+import helpers.UtilFuncs;
+
 import org.apache.commons.math3.linear.*;
 
-class SocBIT_Estimator {
+class SocBIT_Calculator {
 	
 	private SocBIT_Params params;
 	
@@ -13,7 +15,7 @@ class SocBIT_Estimator {
 	private DiagonalMatrix decisionPrefs;
 	private RealMatrix idMat;
 
-	public SocBIT_Estimator(SocBIT_Params params) {
+	public SocBIT_Calculator(SocBIT_Params params) {
 		this.params = params;
 		decisionPrefs = new DiagonalMatrix(params.userDecisionPrefs);
 		numUser = params.brandUser.getColumnDimension();
@@ -36,4 +38,17 @@ class SocBIT_Estimator {
 		return est_edge_weights;
 	}
 
+	RealMatrix comp_ratingErrors(RealMatrix obsRatings) {
+		RealMatrix estimated_ratings = estRatings();
+		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, obsRatings);
+		return rating_errors;
+	}
+	
+	RealMatrix comp_edgeWeightErrors(RealMatrix obsEdgeWeights) {
+		RealMatrix estimated_weights = estWeights();
+		RealMatrix bounded_weights = UtilFuncs.bound(estimated_weights);
+		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, obsEdgeWeights);
+		return edge_weight_errors;
+	}
 }
