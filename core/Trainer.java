@@ -18,9 +18,9 @@ import defs.ParamModelMismatchException;
 public class Trainer {
 	
 	private static final double EPSILON = 1;
-	private static final double INVERSE_STEP = 0.5;
+//	private static final double INVERSE_STEP = 0.5;
 	private static final double GAMMA = Math.pow(10, -4);
-	private static final double EPSILON_STEP = Math.pow(10, -10);
+	private static final double EPSILON_STEP = Math.pow(10, -20);
 	
 	Dataset ds;
 	
@@ -38,7 +38,7 @@ public class Trainer {
 		this.numTopic = numTopic;
 		this.hypers = hypers;
 		this.maxIter = maxIter;
-		stepSize = 1/INVERSE_STEP;
+		stepSize = 1;	// initial stepsize
 		calculator = buildCalculator(model);
 	}
 	
@@ -122,12 +122,16 @@ public class Trainer {
 		boolean sufficentReduction = false;
 		
 		while (!sufficentReduction && (stepSize > EPSILON_STEP)) {
-			stepSize = stepSize * INVERSE_STEP;
+			stepSize = stepSize/10 ;
 			nParams = Updater.update(cParams, stepSize, cGrad, this.model);
 			// todo: may need some projection here to guarantee some constraints
 			double funcDiff = calculator.objValue(nParams) - cValue;
-			double sqDiff = sqDiff(nParams, cParams);
-			double reduction = - GAMMA/stepSize * sqDiff;
+			double sqParamDiff = sqDiff(nParams, cParams);
+			double reduction = - GAMMA/stepSize * sqParamDiff;
+			
+			System.out.println("difference between new value and current value of objective function: " + funcDiff);
+			System.out.println("squared difference bw new params and current params: " + sqParamDiff);
+			System.out.println("necessary reduction amount: " + reduction);
 			sufficentReduction = (funcDiff < reduction);
 			
 			if (funcDiff == 0) {
