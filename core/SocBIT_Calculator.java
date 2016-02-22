@@ -7,29 +7,21 @@ import org.apache.commons.math3.linear.*;
 import defs.Dataset;
 import defs.Hypers;
 
-class SocBIT_Calculator {
+class SocBIT_Calculator extends RecSysCalculator {
 	
 	Dataset ds; 
 	Hypers hypers;
-	
-	private SocBIT_Params params;
-	
-	/**
-	 * fields derived from {@code params}
-	 */
-	private DiagonalMatrix decisionPrefs;
 	private RealMatrix idMat;
 
 	public SocBIT_Calculator(Dataset ds, Hypers hypers) {
 		this.ds = ds;
 		this.hypers = hypers;
-		
-		decisionPrefs = new DiagonalMatrix(params.userDecisionPrefs);
 		idMat = MatrixUtils.createRealIdentityMatrix(ds.numUser);
 	}
 	
 	RealMatrix estRatings(SocBIT_Params params) {
 		
+		DiagonalMatrix decisionPrefs = new DiagonalMatrix(params.userDecisionPrefs);
 		RealMatrix topicRatings = decisionPrefs.multiply(params.topicUser.transpose()).multiply(params.topicItem);
 		RealMatrix brandRatings = idMat.subtract(decisionPrefs).multiply(params.brandUser.transpose()).multiply(params.brandItem);
 		RealMatrix est_ratings =  topicRatings.add(brandRatings); 
@@ -38,6 +30,7 @@ class SocBIT_Calculator {
 	
 	RealMatrix estWeights(SocBIT_Params params) {
 		
+		DiagonalMatrix decisionPrefs = new DiagonalMatrix(params.userDecisionPrefs);
 		RealMatrix topicWeights = decisionPrefs.multiply(params.topicUser.transpose()).multiply(params.topicUser);
 		RealMatrix brandWeights = idMat.subtract(decisionPrefs).multiply(params.brandUser.transpose()).multiply(params.brandUser);
 		RealMatrix est_edge_weights = topicWeights.add(brandWeights);
@@ -58,17 +51,19 @@ class SocBIT_Calculator {
 		return edge_weight_errors;
 	}
 
-	double objValue(SocBIT_Params params) {
+	@Override
+	double objValue(Params params) {
 
-		RealMatrix rating_errors = calRatingErrors(params);
-		RealMatrix edge_weight_errors = calEdgeWeightErrors(params);
+		SocBIT_Params castParams = (SocBIT_Params) params;
+		RealMatrix rating_errors = calRatingErrors(castParams);
+		RealMatrix edge_weight_errors = calEdgeWeightErrors(castParams);
 
 		double val = sqFrobNorm(rating_errors);
 		val += hypers.weightLambda * sqFrobNorm(edge_weight_errors);
-		val += hypers.topicLambda * ( sqFrobNorm(params.topicUser) + sqFrobNorm(params.topicItem) );
-		val += hypers.brandLambda * ( sqFrobNorm(params.brandUser) + sqFrobNorm(params.brandItem) );
+		val += hypers.topicLambda * ( sqFrobNorm(castParams.topicUser) + sqFrobNorm(castParams.topicItem) );
+		val += hypers.brandLambda * ( sqFrobNorm(castParams.brandUser) + sqFrobNorm(castParams.brandItem) );
 		for (int u = 0; u < ds.numUser; u++) {
-			val += hypers.decisionLambda * UtilFuncs.square(params.userDecisionPrefs[u] - 0.5);
+			val += hypers.decisionLambda * UtilFuncs.square(castParams.userDecisionPrefs[u] - 0.5);
 		}
 		return val;
 	}
@@ -77,5 +72,8 @@ class SocBIT_Calculator {
 	private double sqFrobNorm(RealMatrix matrix) {
 		return UtilFuncs.square(matrix.getFrobeniusNorm());
 	}
+
+	
+	
 
 }

@@ -30,14 +30,16 @@ public class Trainer {
 	Hypers hypers;
 	private int maxIter;
 	private double stepSize;
+	private RecSysCalculator calculator;
 	
-	public Trainer(String model, Dataset ds, int numTopic, Hypers hypers, int maxIter) {
+	public Trainer(String model, Dataset ds, int numTopic, Hypers hypers, int maxIter) throws InvalidModelException {
 		this.model = model;
 		this.ds = ds;
 		this.numTopic = numTopic;
 		this.hypers = hypers;
 		this.maxIter = maxIter;
 		stepSize = 1/INVERSE_STEP;
+		calculator = buildCalculator(model);
 	}
 	
 	/**
@@ -54,7 +56,7 @@ public class Trainer {
 		StringBuilder sbObjValue = new StringBuilder("iter, obj_value \n");
 		
 		Params cParams = buildParams(initParams, model);
-		double cValue = objValue(initParams);
+		double cValue = calculator.objValue(initParams);
 		sbObjValue = sbObjValue.append(numIter + "," + cValue + "\n");
 		System.out.println(numIter + ", " + cValue);
 		double difference = Double.POSITIVE_INFINITY;
@@ -65,7 +67,7 @@ public class Trainer {
 			numIter ++;
 			Params cGrad = gradCal.calculate(cParams, this.model);
 			Params nParams = lineSearch(cParams, cGrad, cValue);
-			double nValue = objValue(nParams);
+			double nValue = calculator.objValue(nParams);
 			sbObjValue = sbObjValue.append(numIter + "," + nValue + "\n");
 			difference = nValue - cValue;
 			
@@ -84,6 +86,19 @@ public class Trainer {
 		}
 		
 		return cParams;
+	}
+
+	private RecSysCalculator buildCalculator(String model) throws InvalidModelException {
+		
+		if (model.equalsIgnoreCase("socBIT")) {
+			return new SocBIT_Calculator(ds, hypers);
+		} else {
+			if (model.equalsIgnoreCase("STE")) {
+				return new STE_Calculator(ds, hypers);
+			} else {
+				throw new InvalidModelException();
+			}
+		}
 	}
 
 	private void printStartMsg() {
@@ -110,7 +125,7 @@ public class Trainer {
 			stepSize = stepSize * INVERSE_STEP;
 			nParams = Updater.update(cParams, stepSize, cGrad, this.model);
 			// todo: may need some projection here to guarantee some constraints
-			double funcDiff = objValue(nParams) - cValue;
+			double funcDiff = calculator.objValue(nParams) - cValue;
 			double sqDiff = sqDiff(nParams, cParams);
 			double reduction = - GAMMA/stepSize * sqDiff;
 			sufficentReduction = (funcDiff < reduction);
@@ -153,44 +168,7 @@ public class Trainer {
 		}
 	}
 
-	private double objValue(Params params) throws InvalidModelException {
-		
-		double val ;
-		if (model.equalsIgnoreCase("socBIT")) {
-			SocBIT_Params castParams = (SocBIT_Params) params;
-			val = castParams.objValue(ds, hypers);
-		} 
-		else {
-			if (model.equalsIgnoreCase("STE")) {
-				val = valueBySTE(params);
-			} else {
-				throw new InvalidModelException();
-			}
-		}
-		
-		return val;
-	}
-
-	private double valueBySTE(Params params) {
-		
-		double userFeatsNorm = params.topicUser.getFrobeniusNorm();
-		double itemFeatsNorm = params.topicItem.getFrobeniusNorm();
-		double val = hypers.topicLambda * (square(userFeatsNorm) + square(itemFeatsNorm));	// regularized part
-		
-		RealMatrix rating_errors = ste_ratingErrors(params);
-		val += square(rating_errors.getFrobeniusNorm());;
-		return val;
-	}
-
-	private RealMatrix ste_ratingErrors(Params params) {
-		
-		STE_estimator ste_estimator = new STE_estimator(params, hypers.alpha, ds.edge_weights);
-		RealMatrix estimated_ratings = ste_estimator.estRatings();
-		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
-		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
-		return rating_errors;
-	}
-
+	// wrapper for computing squared difference bw two parameters where the computation depends on specific model
 	private double sqDiff(Params p1, Params p2) throws InvalidModelException {
 
 		if (model.equalsIgnoreCase("socBIT")) {
@@ -199,19 +177,11 @@ public class Trainer {
 			return cast_p1.sqDiff(cast_p2);
 		} else {
 			if (model.equalsIgnoreCase("STE")) {
-				return ste_Diff(p1, p2);
+				return p1.topicDiff(p2);
 			} else {
 				throw new InvalidModelException();
 			}
 		}
 		
-	}
-
-	private double ste_Diff(Params p1, Params p2) {
-		return p1.topicDiff(p2);
-	}
-
-	private double square(double d) {
-		return Math.pow(d, 2);
 	}
 }

@@ -9,7 +9,7 @@ import org.apache.commons.math3.linear.RealVector;
 import defs.Dataset;
 import defs.Hypers;
 
-class STE_Calculator {
+class STE_Calculator extends RecSysCalculator {
 	
 	Dataset ds; 
 	Hypers hypers;
@@ -51,7 +51,8 @@ class STE_Calculator {
 		return estimated_ratings;
 	}
 
-	private double objValue(Params params) {
+	@Override
+	double objValue(Params params) {
 		
 		double userFeatsNorm = params.topicUser.getFrobeniusNorm();
 		double itemFeatsNorm = params.topicItem.getFrobeniusNorm();
