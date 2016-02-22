@@ -8,6 +8,11 @@ public class UtilFuncs {
 	static double logistic(double x) {
 		return 1/(1 + Math.exp(-x));
 	}
+	
+	public static double logisDiff(double x) {
+		double invExp = Math.exp(-x);
+		return invExp/Math.pow(1 + invExp, 2);
+	}
 
 	static RealMatrix logisticMat(RealMatrix matrix) {
 		int rowDim = matrix.getRowDimension();
