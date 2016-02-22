@@ -8,9 +8,6 @@ import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
-import defs.Dataset;
-import defs.Hypers;
-
 public class SocBIT_Params extends Params {
 	
 	private static final double EPSILON = Math.pow(10, -1);
@@ -109,24 +106,4 @@ public class SocBIT_Params extends Params {
 		return brandDiff;
 	}
 	
-	double objValue(Dataset ds, Hypers hypers) {
-
-		SocBIT_Calculator estimator = new SocBIT_Calculator(this);
-		RealMatrix rating_errors = estimator.comp_ratingErrors(ds.ratings);
-		RealMatrix edge_weight_errors = estimator.comp_edgeWeightErrors(ds.edge_weights);
-
-		double val = sqFrobNorm(rating_errors);
-		val += hypers.weightLambda * UtilFuncs.square(edge_weight_errors.getFrobeniusNorm());
-		val += hypers.topicLambda * ( sqFrobNorm(topicUser) + sqFrobNorm(topicItem) );
-		val += hypers.brandLambda * ( sqFrobNorm(brandUser) + sqFrobNorm(brandItem) );
-		for (int u = 0; u < ds.numUser; u++) {
-			val += hypers.decisionLambda * UtilFuncs.square(userDecisionPrefs[u] - 0.5);
-		}
-		return val;
-	}
-	
-	// squared Frobenius Norm
-	private double sqFrobNorm(RealMatrix matrix) {
-		return UtilFuncs.square(matrix.getFrobeniusNorm());
-	}
 }
