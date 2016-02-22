@@ -1,5 +1,8 @@
 package core;
 
+import helpers.Updater;
+import helpers.UtilFuncs;
+
 import java.io.IOException;
 
 import myUtil.Savers;
@@ -105,7 +108,7 @@ public class Trainer {
 		
 		while (!sufficentReduction && (stepSize > EPSILON_STEP)) {
 			stepSize = stepSize * INVERSE_STEP;
-			nParams = update(cParams, stepSize, cGrad);
+			nParams = Updater.update(cParams, stepSize, cGrad, this.model);
 			// todo: may need some projection here to guarantee some constraints
 			double funcDiff = objValue(nParams) - cValue;
 			double sqDiff = sqDiff(nParams, cParams);
@@ -147,97 +150,6 @@ public class Trainer {
 			else {
 				throw new InvalidModelException();
 			}
-		}
-		
-	}
-
-	private Params update(Params cParams, double stepSize, Params cGrad) throws ParamModelMismatchException, InvalidModelException {
-		
-		Params nParams = buildParams(cParams, model);
-		
-		updateUserComponents(cParams, nParams, cGrad, stepSize);
-		updateItemComponents(cParams, nParams, cGrad, stepSize);
-		
-		return nParams;
-	}
-
-	private void updateItemComponents(Params cParams, Params nParams, Params cGrad, double stepSize) {
-		
-		if (model.equalsIgnoreCase("socBIT")) {//cParams instanceof SocBIT_Params && nParams instanceof SocBIT_Params
-			updateItemParamsBySocBIT( (SocBIT_Params) cParams, (SocBIT_Params) nParams, (SocBIT_Params) cGrad, stepSize);
-		} 
-		else {
-			if (model.equalsIgnoreCase("STE")) {
-				updateItemParamsBySTE(cParams, nParams, cGrad, stepSize);
-			}
-		}
-	}
-
-	private void updateItemParamsBySTE(Params cParams, Params nParams, Params cGrad, double stepSize) {
-		
-		for (int i = 0; i < ds.numItem; i++) {
-			RealVector curTopicFeat = cParams.topicItem.getColumnVector(i);
-			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicItem.setColumnVector(i, nextTopicFeat);
-		}
-	}
-
-	private void updateItemParamsBySocBIT(SocBIT_Params cParams, SocBIT_Params nParams, SocBIT_Params cGrad, double stepSize) {
-		
-		for (int i = 0; i < ds.numItem; i++) {
-			// topic component
-			RealVector curTopicFeat = cParams.topicItem.getColumnVector(i);
-			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicItem.setColumnVector(i, nextTopicFeat);
-			// brand component
-			RealVector curBrandFeat = cParams.brandItem.getColumnVector(i);
-			RealVector brandDescent = cGrad.brandItem.getColumnVector(i).mapMultiply(-stepSize);
-			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
-			nParams.brandItem.setColumnVector(i, nextBrandFeat);
-		}
-	}
-
-	private void updateUserComponents(Params cParams, Params nParams, Params cGrad, double stepSize) {
-		
-		if (model.equalsIgnoreCase("socBIT")) {
-			updateUserParamsBySocBIT((SocBIT_Params) cParams, (SocBIT_Params) nParams, (SocBIT_Params) cGrad, stepSize);
-		} 
-		else {
-			if (model.equalsIgnoreCase("STE")) {
-				updateUserParamsBySTE(cParams, nParams, cGrad, stepSize);
-			}
-		}
-	}
-
-	private void updateUserParamsBySTE(Params cParams, Params nParams, Params cGrad, double stepSize) {
-		
-		for (int u = 0; u < ds.numUser; u++) {
-			
-			RealVector curTopicFeat = cParams.topicUser.getColumnVector(u);
-			RealVector topicDescent = cGrad.topicUser.getColumnVector(u).mapMultiply( -stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicUser.setColumnVector(u, nextTopicFeat);
-		}
-	}
-
-	private void updateUserParamsBySocBIT(SocBIT_Params cParams,
-			SocBIT_Params nParams, SocBIT_Params cGrad, double stepSize) {
-		
-		for (int u = 0; u < ds.numUser; u++) {
-			// user decision pref
-			nParams.userDecisionPrefs[u] = cParams.userDecisionPrefs[u] - stepSize * cGrad.userDecisionPrefs[u];
-			// topic component
-			RealVector curTopicFeat = cParams.topicUser.getColumnVector(u);
-			RealVector topicDescent = cGrad.topicUser.getColumnVector(u).mapMultiply( -stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicUser.setColumnVector(u, nextTopicFeat);
-			// brand component
-			RealVector curBrandFeat = cParams.brandUser.getColumnVector(u);
-			RealVector brandDescent = cGrad.brandUser.getColumnVector(u).mapMultiply(-stepSize);
-			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
-			nParams.brandUser.setColumnVector(u, nextBrandFeat);
 		}
 	}
 

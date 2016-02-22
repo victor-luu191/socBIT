@@ -7,8 +7,8 @@ import org.apache.commons.math3.linear.RealVector;
 
 public class Params {
 
-	protected RealMatrix topicUser;
-	protected RealMatrix topicItem;
+	public RealMatrix topicUser;
+	public RealMatrix topicItem;
 
 	Params(int numUser, int numItem, int numTopic) {
 

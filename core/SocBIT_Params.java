@@ -10,15 +10,15 @@ public class SocBIT_Params extends Params {
 	
 	private static final double EPSILON = Math.pow(10, -1);
 
-	RealMatrix brandUser;	// represent brand interests of users, later need to normalize for each user
-	RealMatrix brandItem;	// represent an item's popularity under each of its producing brand 
+	public RealMatrix brandUser;	// represent brand interests of users, later need to normalize for each user
+	public RealMatrix brandItem;	// represent an item's popularity under each of its producing brand 
 							// 	if a brand b does not produce an item i then the entry (i,b) is simply 0	
 	
 	/**
 	 * represent decision preference of users i.e. whether a user prefers brand-based or topic-based adopts
 	 * Range: [0,1]; > 0.5 if the user prefers topic-based, < 0.5 if  the user prefers brand-based
 	 */
-	double[] userDecisionPrefs;
+	public double[] userDecisionPrefs;
 	
 	public SocBIT_Params(double[] userDecisionPrefs, RealMatrix topicUser,
 							RealMatrix brandUser, RealMatrix topicItem, RealMatrix brandItem) {
