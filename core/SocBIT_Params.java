@@ -1,10 +1,15 @@
 package core;
 
+import helpers.UtilFuncs;
+
 import java.util.Arrays;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+
+import defs.Dataset;
+import defs.Hypers;
 
 public class SocBIT_Params extends Params {
 	
@@ -80,5 +85,48 @@ public class SocBIT_Params extends Params {
 		}
 	}
 
+	double sqDiff(SocBIT_Params other) {
+		double topicDiff = this.topicDiff(other);
+		double brandDiff = this.brandDiff(other);
+		double decisionDiff = this.decisionDiff(other);
+		double sqDiff = topicDiff + brandDiff + decisionDiff;
+		return sqDiff;
+	}
+
+	private double decisionDiff(SocBIT_Params other) {
+		double decisionDiff = 0;
+		
+		int numUser = this.topicUser.getColumnDimension();
+		for (int u = 0; u < numUser; u++) {
+			decisionDiff += UtilFuncs.square(this.userDecisionPrefs[u] - other.userDecisionPrefs[u]);
+		}
+		return decisionDiff;
+	}
+
+	private double brandDiff(SocBIT_Params other) {
+		double brandDiff = UtilFuncs.square(this.brandUser.subtract(other.brandUser).getFrobeniusNorm());
+		brandDiff += UtilFuncs.square(this.brandItem.subtract(other.brandItem).getFrobeniusNorm());
+		return brandDiff;
+	}
 	
+	double objValue(Dataset ds, Hypers hypers) {
+
+		SocBIT_Calculator estimator = new SocBIT_Calculator(this);
+		RealMatrix rating_errors = estimator.comp_ratingErrors(ds.ratings);
+		RealMatrix edge_weight_errors = estimator.comp_edgeWeightErrors(ds.edge_weights);
+
+		double val = sqFrobNorm(rating_errors);
+		val += hypers.weightLambda * UtilFuncs.square(edge_weight_errors.getFrobeniusNorm());
+		val += hypers.topicLambda * ( sqFrobNorm(topicUser) + sqFrobNorm(topicItem) );
+		val += hypers.brandLambda * ( sqFrobNorm(brandUser) + sqFrobNorm(brandItem) );
+		for (int u = 0; u < ds.numUser; u++) {
+			val += hypers.decisionLambda * UtilFuncs.square(userDecisionPrefs[u] - 0.5);
+		}
+		return val;
+	}
+	
+	// squared Frobenius Norm
+	private double sqFrobNorm(RealMatrix matrix) {
+		return UtilFuncs.square(matrix.getFrobeniusNorm());
+	}
 }

@@ -30,4 +30,8 @@ public class UtilFuncs {
 	public static RealMatrix bound(RealMatrix matrix) {
 		return logisticMat(matrix);
 	}
+
+	public static double square(double d) {
+		return Math.pow(d, 2);
+	}
 }

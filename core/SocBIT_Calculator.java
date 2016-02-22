@@ -4,6 +4,9 @@ import helpers.UtilFuncs;
 
 import org.apache.commons.math3.linear.*;
 
+import defs.Dataset;
+import defs.Hypers;
+
 class SocBIT_Calculator {
 	
 	private SocBIT_Params params;
@@ -51,4 +54,6 @@ class SocBIT_Calculator {
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, obsEdgeWeights);
 		return edge_weight_errors;
 	}
+
+	
 }

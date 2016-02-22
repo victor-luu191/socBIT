@@ -157,7 +157,8 @@ public class Trainer {
 		
 		double val ;
 		if (model.equalsIgnoreCase("socBIT")) {
-			val = valueBySocBIT((SocBIT_Params) params);
+			SocBIT_Params castParams = (SocBIT_Params) params;
+			val = castParams.objValue(ds, hypers);
 		} 
 		else {
 			if (model.equalsIgnoreCase("STE")) {
@@ -181,22 +182,6 @@ public class Trainer {
 		return val;
 	}
 
-	private double valueBySocBIT(SocBIT_Params params) {
-
-		SocBIT_Estimator estimator = new SocBIT_Estimator(params);
-		RealMatrix rating_errors = socBIT_ratingErrors(estimator);
-		RealMatrix edge_weight_errors = socBIT_edgeWeightErrors(estimator);
-
-		double val = square(rating_errors.getFrobeniusNorm());
-		val += hypers.weightLambda * square(edge_weight_errors.getFrobeniusNorm());
-		val += hypers.topicLambda * ( square(params.topicUser.getFrobeniusNorm()) + square(params.topicItem.getFrobeniusNorm()) );
-		val += hypers.brandLambda * ( square(params.brandUser.getFrobeniusNorm()) + square(params.brandItem.getFrobeniusNorm()) );
-		for (int u = 0; u < ds.numUser; u++) {
-			val += hypers.decisionLambda * square(params.userDecisionPrefs[u] - 0.5);
-		}
-		return val;
-	}
-	
 	private RealMatrix ste_ratingErrors(Params params) {
 		
 		STE_estimator ste_estimator = new STE_estimator(params, hypers.alpha, ds.edge_weights);
@@ -206,24 +191,12 @@ public class Trainer {
 		return rating_errors;
 	}
 
-	private RealMatrix socBIT_edgeWeightErrors(SocBIT_Estimator estimator) {
-		RealMatrix estimated_weights = estimator.estWeights();
-		RealMatrix bounded_weights = UtilFuncs.bound(estimated_weights);
-		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);
-		return edge_weight_errors;
-	}
-
-	private RealMatrix socBIT_ratingErrors(SocBIT_Estimator estimator) {
-		RealMatrix estimated_ratings = estimator.estRatings();
-		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
-		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
-		return rating_errors;
-	}
-	
 	private double sqDiff(Params p1, Params p2) throws InvalidModelException {
 
 		if (model.equalsIgnoreCase("socBIT")) {
-			return socBIT_Diff((SocBIT_Params) p1, (SocBIT_Params) p2);
+			SocBIT_Params cast_p1 = (SocBIT_Params) p1;
+			SocBIT_Params cast_p2 = (SocBIT_Params) p2;
+			return cast_p1.sqDiff(cast_p2);
 		} else {
 			if (model.equalsIgnoreCase("STE")) {
 				return ste_Diff(p1, p2);
@@ -235,38 +208,9 @@ public class Trainer {
 	}
 
 	private double ste_Diff(Params p1, Params p2) {
-		return topicDiff(p1, p2);
+		return p1.topicDiff(p2);
 	}
 
-	private double socBIT_Diff(SocBIT_Params p1, SocBIT_Params p2) {
-		double topicDiff = topicDiff(p1, p2);
-		double brandDiff = brandDiff(p1, p2);
-		double decisionDiff = decisionDiff(p1, p2);
-		double sqDiff = topicDiff + brandDiff + decisionDiff;
-		return sqDiff;
-	}
-
-	private double decisionDiff(SocBIT_Params p1, SocBIT_Params p2) {
-		double decisionDiff = 0;
-		for (int u = 0; u < ds.numUser; u++) {
-			decisionDiff += square(p1.userDecisionPrefs[u] - p2.userDecisionPrefs[u]);
-		}
-		return decisionDiff;
-	}
-
-	private double brandDiff(SocBIT_Params p1, SocBIT_Params p2) {
-		double brandDiff = square(p1.brandUser.subtract(p2.brandUser).getFrobeniusNorm());
-		brandDiff += square(p1.brandItem.subtract(p2.brandItem).getFrobeniusNorm());
-		return brandDiff;
-	}
-
-	private double topicDiff(Params p1, Params p2) {
-		
-		double topicDiff = square(p1.topicUser.subtract(p2.topicUser).getFrobeniusNorm());
-		topicDiff += square(p1.topicItem.subtract(p2.topicItem).getFrobeniusNorm());
-		return topicDiff;
-	}
-	
 	private double square(double d) {
 		return Math.pow(d, 2);
 	}
