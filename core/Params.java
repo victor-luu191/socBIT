@@ -17,7 +17,7 @@ public class Params {
 	}
 
 	Params(RealMatrix topicUser, RealMatrix topicItem) {
-		// TODO Auto-generated constructor stub
+		
 		this.topicItem = topicItem;
 		this.topicUser = topicUser;
 	}
@@ -44,6 +44,21 @@ public class Params {
 			}
 		}
 
+	protected void createFeatsUniformly() {
+		int numTopic = topicItem.getRowDimension();
+		RealVector uniformVector = uniformVector(numTopic);
+		
+		int numItem = topicItem.getColumnDimension();
+		for (int i = 0; i < numItem; i++) {
+			topicItem.setColumnVector(i, uniformVector);	
+		}
+		
+		int numUser = topicUser.getColumnDimension();
+		for (int u = 0; u < numUser; u++) {
+			topicUser.setColumnVector(u, uniformVector);	// unitVector
+		}
+	}
+	
 	private RealVector uniformVector(int size) {
 		RealVector unifVector = new ArrayRealVector(size);
 		unifVector = unifVector.mapAdd(1.0/size);
