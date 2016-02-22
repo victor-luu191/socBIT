@@ -125,7 +125,8 @@ public class Trainer {
 			stepSize = stepSize/10 ;
 			nParams = Updater.update(cParams, stepSize, cGrad, this.model);
 			// todo: may need some projection here to guarantee some constraints
-			double funcDiff = calculator.objValue(nParams) - cValue;
+			double nValue = calculator.objValue(nParams);
+			double funcDiff = nValue - cValue;
 			double sqParamDiff = sqDiff(nParams, cParams);
 			double reduction = - GAMMA/stepSize * sqParamDiff;
 			

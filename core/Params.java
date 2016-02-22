@@ -12,7 +12,7 @@ public class Params {
 	public RealMatrix topicUser;
 	public RealMatrix topicItem;
 
-	Params(int numUser, int numItem, int numTopic) {
+	public Params(int numUser, int numItem, int numTopic) {
 
 		topicUser = new Array2DRowRealMatrix(numTopic, numUser);
 		topicItem = new Array2DRowRealMatrix(numTopic, numItem);
@@ -20,8 +20,16 @@ public class Params {
 
 	Params(RealMatrix topicUser, RealMatrix topicItem) {
 
-		this.topicItem = topicItem;
-		this.topicUser = topicUser;
+		this.topicItem = topicItem.copy();
+		this.topicUser = topicUser.copy();
+	}
+
+	public Params(Params params) {
+		topicItem = params.topicItem.copy();
+		topicUser = params.topicUser.copy();
+		
+//		new Params(params.topicUser, params.topicItem);
+
 	}
 
 	protected void initItemTopicFeats(int numItem, int numTopic) {
@@ -79,8 +87,17 @@ public class Params {
 
 	double topicDiff(Params other) {
 		
-		double topicDiff = UtilFuncs.square(this.topicUser.subtract(other.topicUser).getFrobeniusNorm());
-		topicDiff += UtilFuncs.square(this.topicItem.subtract(other.topicItem).getFrobeniusNorm());
+		double topicDiff = 0;
+		RealMatrix userTopicDiff = this.topicUser.subtract(other.topicUser);
+		topicDiff += sqFrobNorm(userTopicDiff);
+		RealMatrix itemTopicDiff = this.topicItem.subtract(other.topicItem);
+		topicDiff += sqFrobNorm(itemTopicDiff);
 		return topicDiff;
 	}
+
+	private double sqFrobNorm(RealMatrix mat) {
+		return UtilFuncs.square(mat.getFrobeniusNorm());
+	}
+	
+	
 }
