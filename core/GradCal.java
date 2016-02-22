@@ -56,11 +56,11 @@ public class GradCal {
 	 */
 	SocBIT_Params socBIT_Grad(SocBIT_Params params) {
 		
-		SocBIT_Calculator socBIT_Estimator = new SocBIT_Calculator(params);
-		estimated_ratings = socBIT_Estimator.estRatings();
+		SocBIT_Calculator socBIT_Estimator = new SocBIT_Calculator(ds, hypers);
+		estimated_ratings = socBIT_Estimator.estRatings(params);
 		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
 		
-		estimated_weights = socBIT_Estimator.estWeights();
+		estimated_weights = socBIT_Estimator.estWeights(params);
 		RealMatrix bounded_weights = UtilFuncs.bound(estimated_weights);
 		
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);	// estimated_weights
@@ -85,8 +85,8 @@ public class GradCal {
 	
 	Params ste_Grad(Params params) {
 		
-		STE_estimator ste_estimator = new STE_estimator(params, hypers.alpha, ds.edge_weights);
-		estimated_ratings = ste_estimator.estRatings();
+		STE_Calculator ste_estimator = new STE_Calculator(ds, hypers);
+		estimated_ratings = ste_estimator.estRatings(params);
 		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
 		RealMatrix edge_weight_errors = new Array2DRowRealMatrix();	// just a dummy matrix as STE model don't estimate edge weights
@@ -215,7 +215,7 @@ public class GradCal {
 			}
 		}
 		
-		itemTopicGrad = itemTopicGrad.add(sum);
+		itemTopicGrad = itemTopicGrad.subtract(sum);
 		return itemTopicGrad;
 	}
 
@@ -227,7 +227,8 @@ public class GradCal {
 		RealVector personal_part = compPersonalPart(u, params, rating_errors);
 		RealVector influenceePart = compInfluenceePart(u, params, rating_errors);
 		
-		userTopicGrad = personal_part.mapMultiply(alpha).add(influenceePart.mapMultiply(1 - alpha)); 
+		RealVector sum = personal_part.mapMultiply(alpha).add(influenceePart.mapMultiply(1 - alpha));
+		userTopicGrad = userTopicGrad.subtract(sum); 
 		return userTopicGrad;
 	}
 
