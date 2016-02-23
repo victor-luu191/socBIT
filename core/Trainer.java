@@ -1,15 +1,10 @@
 package core;
 
 import helpers.Updater;
-import helpers.UtilFuncs;
 
 import java.io.IOException;
 
 import myUtil.Savers;
-
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
-
 import defs.Dataset;
 import defs.Hypers;
 import defs.InvalidModelException;
@@ -61,11 +56,11 @@ public class Trainer {
 		System.out.println(numIter + ", " + cValue);
 		double difference = Double.POSITIVE_INFINITY;
 		
-		GradCal gradCal = new GradCal(this);
+		GradCal gradCal = buildGradCal(model);
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
-			Params cGrad = gradCal.calculate(cParams, this.model);
+			Params cGrad = gradCal.calculate(cParams);
 			Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = calculator.objValue(nParams);
 			sbObjValue = sbObjValue.append(numIter + "," + nValue + "\n");
@@ -86,6 +81,19 @@ public class Trainer {
 		}
 		
 		return cParams;
+	}
+
+	private GradCal buildGradCal(String model) {
+		// TODO Auto-generated method stub
+		GradCal gradCal = null;
+		if (model.equalsIgnoreCase("socBIT")) {
+			gradCal = new SocBIT_GradCal(this);
+		}
+		if (model.equalsIgnoreCase("STE")) {
+			gradCal = new STE_GradCal(this);
+		}
+		
+		return gradCal;
 	}
 
 	private RecSysCal buildCalculator(String model) throws InvalidModelException {
