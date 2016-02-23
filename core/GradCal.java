@@ -11,99 +11,25 @@ import defs.Dataset;
 import defs.Hypers;
 import defs.InvalidModelException;
 
-public class GradCal {
+public abstract class GradCal {
 	
-	private Hypers hypers;
+	protected Hypers hypers;
 	// derived fields
-	private int numTopic;
+	protected int numTopic;
 	Dataset ds;
-	private RealMatrix estimated_ratings;
-	private RealMatrix estimated_weights;
+	protected RealMatrix estimated_ratings;
+	protected RealMatrix estimated_weights;
 
-	// this alpha is redundant (it is already included in hypers), but for later brevity, we allow this redundancy
-	// for the meaning of alpha, see in hypers
-	private double alpha;	   
-	
 	public GradCal(Trainer trainer) {
 		
 		numTopic = trainer.numTopic;
 		ds = trainer.ds;
 		hypers = trainer.hypers;
-		this.alpha = hypers.alpha;
+		
 	}
 	
 	// model is the trainer's model
-	Params calculate(Params params, String model) throws InvalidModelException {
-		if (model.equalsIgnoreCase("socBIT")) {
-			SocBIT_Params castParams = (SocBIT_Params) params;
-			return socBIT_Grad(castParams);
-		} 
-		else {
-			if (model.equalsIgnoreCase("STE")) {
-				return ste_Grad(params);
-			} 
-			else {
-				throw new InvalidModelException();
-			}
-		}
-	}
-	
-	/**
-	 * Main work is here !!!
-	 * Compute the gradient at a given set of params by SocBIT model; by computing all the components of the gradient
-	 * @param params
-	 * @return the complete gradient with all its components
-	 */
-	SocBIT_Params socBIT_Grad(SocBIT_Params params) {
-		
-		SocBIT_Cal socBIT_Estimator = new SocBIT_Cal(ds, hypers);
-		estimated_ratings = socBIT_Estimator.estRatings(params);
-		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
-		
-		estimated_weights = socBIT_Estimator.estWeights(params);
-		RealMatrix bounded_weights = UtilFuncs.bound(estimated_weights);
-		
-		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);	// estimated_weights
-		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);					// estimated_ratings
-		
-		SocBIT_Params grad = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
-		// gradients for users
-		for (int u = 0; u < ds.numUser; u++) {
-			grad.userDecisionPrefs[u] = userDecisionPrefDiff(params, u, rating_errors, edge_weight_errors);
-			grad.topicUser.setColumnVector(u, userTopicGrad(params, u, rating_errors, edge_weight_errors));
-			grad.brandUser.setColumnVector(u, userBrandGrad(params, u, rating_errors, edge_weight_errors));
-		}
-		
-		// gradients for items
-		for (int i = 0; i < ds.numItem; i++) {
-			grad.topicItem.setColumnVector(i, itemTopicGrad(params, i, rating_errors));
-			grad.brandItem.setColumnVector(i, itemBrandGrad(params, i, rating_errors));
-		}
-		
-		return grad;
-	}
-	
-	Params ste_Grad(Params params) {
-		
-		STE_Cal ste_estimator = new STE_Cal(ds, hypers);
-		estimated_ratings = ste_estimator.estRatings(params);
-		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
-		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
-		RealMatrix edge_weight_errors = new Array2DRowRealMatrix();	// just a dummy matrix as STE model don't estimate edge weights
-		
-		Params grad = new Params(ds.numUser, ds.numItem, numTopic);
-		// gradients for users
-		for (int u = 0; u < ds.numUser; u++) {
-			RealVector userTopicGrad = userTopicGrad(params, u, rating_errors, edge_weight_errors);
-			grad.topicUser.setColumnVector(u, userTopicGrad);
-		}
-		
-		// gradients for items
-		for (int i = 0; i < ds.numItem; i++) {
-			grad.topicItem.setColumnVector(i, itemTopicGrad(params, i, rating_errors));
-		}
-		return grad;
-	}
+	abstract Params calculate(Params params);
 	
 	/**
 	 * Wrapper for calculations of gradient of item topic feats
@@ -196,91 +122,6 @@ public class GradCal {
 		RealVector bigSum = rating_sum.add(edge_weight_sum.mapMultiply(weightLambda));
 		topicGrad = topicGrad.add(bigSum.mapMultiply(params.userDecisionPrefs[u])); 	// see Eqn. 26
 		return topicGrad;
-	}
-	
-	private RealVector ste_itemTopicGrad(Params params, int itemIndex, RealMatrix rating_errors) {
-		
-		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
-		RealVector itemTopicGrad = itemTopicFeats.mapMultiply(hypers.topicLambda);
-		
-		RealVector sum = new ArrayRealVector(numTopic);
-		for (int u = 0; u < ds.numUser; u++) {
-			double rate_err = rating_errors.getEntry(u, itemIndex);
-			if (rate_err != 0) {
-				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, itemIndex));
-				RealVector userTopicFeats = params.topicUser.getColumnVector(u);
-				RealVector combo_feat = comboFeat(userTopicFeats, u, params);
-				
-				RealVector correctionByUser = combo_feat.mapMultiply(rate_err).mapMultiply(logisDiff);
-				sum = sum.add(correctionByUser);
-			}
-		}
-		
-		itemTopicGrad = itemTopicGrad.add(sum);
-		return itemTopicGrad;
-	}
-
-	private RealVector ste_userTopicGrad(Params params, int u, RealMatrix rating_errors) {
-		
-		RealVector userTopicFeats = params.topicUser.getColumnVector(u);
-		RealVector userTopicGrad = userTopicFeats.mapMultiply(hypers.topicLambda);
-		
-		RealVector personal_part = compPersonalPart(u, params, rating_errors);
-		RealVector influenceePart = compInfluenceePart(u, params, rating_errors);
-		
-		RealVector sum = personal_part.mapMultiply(alpha).add(influenceePart.mapMultiply(1 - alpha));
-		userTopicGrad = userTopicGrad.add(sum); 
-		return userTopicGrad;
-	}
-
-	private RealVector compInfluenceePart(int u, Params params,
-			RealMatrix rating_errors) {
-		// influencee: those who are influenced by/trust u, thus include u's feat in their rating
-		RealVector influenceePart = new ArrayRealVector(numTopic);	
-		for (int v = 0; v < ds.numUser; v++) {
-			double influencedLevel = ds.edge_weights.getEntry(u, v);
-			if (influencedLevel > 0) {
-				for (int i = 0; i < ds.numItem; i++) {
-					double oneRatingErr = rating_errors.getEntry(v, i);
-					if (oneRatingErr > 0) {
-						RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
-						double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(v, i));
-						double weight = influencedLevel * oneRatingErr * logisDiff;
-						influenceePart = influenceePart.add(itemTopicFeats.mapMultiply(weight));
-					}
-				}
-			}
-		}
-		return influenceePart;
-	}
-
-	private RealVector compPersonalPart(int u, Params params,
-			RealMatrix rating_errors) {
-		RealVector personal_part = new ArrayRealVector(numTopic);
-		for (int i = 0; i < ds.numItem; i++) {
-			RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
-			if (rating_errors.getEntry(u, i) > 0) {
-				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
-				double oneRatingErr = rating_errors.getEntry(u, i);
-				personal_part = personal_part.add(itemTopicFeats.mapMultiply(oneRatingErr).mapMultiply(logisDiff));
-			}
-		}
-		return personal_part;
-	}
-
-	private RealVector comboFeat(RealVector userTopicFeats, int u, Params params) {
-		
-		RealVector combo_feat = userTopicFeats.mapMultiply(alpha);
-		RealVector friendFeats = new ArrayRealVector(numTopic);
-		for (int v = 0; v < ds.numUser; v++) {
-			double influenceWeight = ds.edge_weights.getEntry(v, u);
-			if (influenceWeight > 0) {
-				RealVector vFeat = params.topicUser.getColumnVector(v);
-				friendFeats = friendFeats.add(vFeat.mapMultiply(influenceWeight));
-			}
-		}
-		combo_feat = combo_feat.add(friendFeats.mapMultiply(1 - alpha));
-		return combo_feat;
 	}
 	
 	RealVector itemBrandGrad(SocBIT_Params params, int itemIndex, RealMatrix rating_errors) {
