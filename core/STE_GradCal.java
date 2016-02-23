@@ -11,12 +11,14 @@ public class STE_GradCal extends GradCal {
 	// this alpha is redundant (it is already included in hypers), but for later brevity, we allow this redundancy
 	// for the meaning of alpha, see in hypers
 	private double alpha;
-	RealMatrix rating_errors;
-	
+	private STE_Cal calculator;
 	public STE_GradCal(Trainer trainer) {
-		super(trainer);
-		// TODO Auto-generated constructor stub
+		
+		numTopic = trainer.numTopic;
+		ds = trainer.ds;
+		hypers = trainer.hypers;
 		this.alpha = hypers.alpha;
+		calculator = new STE_Cal(ds, hypers);
 	}
 
 	@Override
@@ -39,7 +41,6 @@ public class STE_GradCal extends GradCal {
 	}
 
 	private void calRatingErrors(Params params) {
-		STE_Cal calculator = new STE_Cal(ds, hypers);
 		estimated_ratings = calculator.estRatings(params);
 		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
 		rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
