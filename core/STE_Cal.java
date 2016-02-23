@@ -20,6 +20,19 @@ class STE_Cal extends RecSysCal {
 		this.hypers = hypers;
 	}
 
+	@Override
+	double objValue(Params params) {
+		
+//		System.out.println("calculating value of objective function ...");
+		double userFeatsNorm = params.topicUser.getFrobeniusNorm();
+		double itemFeatsNorm = params.topicItem.getFrobeniusNorm();
+		double val = hypers.topicLambda * (UtilFuncs.square(userFeatsNorm) + UtilFuncs.square(itemFeatsNorm));	// regularized part
+		
+		RealMatrix rating_errors = calRatingErrors(params);
+		val += UtilFuncs.square(rating_errors.getFrobeniusNorm());
+		return val;
+	}
+	
 	/**
 	 * Estimated rating r_{u,i} by STE (social trust ensemble) model in Hao Ma paper: Learning to Recommend with Social Trust Ensemble
 	 * @param u
@@ -49,19 +62,6 @@ class STE_Cal extends RecSysCal {
 			}
 		}
 		return estimated_ratings;
-	}
-
-	@Override
-	double objValue(Params params) {
-		
-//		System.out.println("calculating value of objective function ...");
-		double userFeatsNorm = params.topicUser.getFrobeniusNorm();
-		double itemFeatsNorm = params.topicItem.getFrobeniusNorm();
-		double val = hypers.topicLambda * (UtilFuncs.square(userFeatsNorm) + UtilFuncs.square(itemFeatsNorm));	// regularized part
-		
-		RealMatrix rating_errors = calRatingErrors(params);
-		val += UtilFuncs.square(rating_errors.getFrobeniusNorm());
-		return val;
 	}
 
 	private RealMatrix calRatingErrors(Params params) {
