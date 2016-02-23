@@ -56,7 +56,7 @@ public class Experiments {
 //		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
-//			Params socBIT_params = trainBySocBIT(ds, numTopic);
+			Params socBIT_params = trainBySocBIT(ds, numTopic);
 			Params ste_params = trainBySTE(ds, numTopic);
 			
 //			Errors errors = compDiff(socBIT_params, gt_params);
