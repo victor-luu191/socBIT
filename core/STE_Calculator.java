@@ -54,7 +54,7 @@ class STE_Calculator extends RecSysCalculator {
 	@Override
 	double objValue(Params params) {
 		
-		System.out.println("calculating value of objective function ...");
+//		System.out.println("calculating value of objective function ...");
 		double userFeatsNorm = params.topicUser.getFrobeniusNorm();
 		double itemFeatsNorm = params.topicItem.getFrobeniusNorm();
 		double val = hypers.topicLambda * (UtilFuncs.square(userFeatsNorm) + UtilFuncs.square(itemFeatsNorm));	// regularized part

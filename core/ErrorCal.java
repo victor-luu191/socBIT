@@ -5,22 +5,22 @@ import org.apache.commons.math3.linear.RealMatrix;
 class ErrorCal {
 	
 	// Pre: both weight matrices are square with the same dimension
-	static RealMatrix edgeWeightErrors(RealMatrix estimated_weights, RealMatrix actual_weights) {
+	static RealMatrix edgeWeightErrors(RealMatrix est_weights, RealMatrix obs_weights) {
 		// Ad-hoc trick: as w_{u, u}'s do NOT exist, we need to exclude errors due to estimating them by 
 		// resetting them equal to estimated weights
-		int numUser = actual_weights.getColumnDimension();
+		int numUser = obs_weights.getColumnDimension();
 		for (int u = 0; u < numUser; u++) {
-			actual_weights.setEntry(u, u, estimated_weights.getEntry(u, u));	  
+			obs_weights.setEntry(u, u, est_weights.getEntry(u, u));	  
 		}
-		RealMatrix edge_weight_errors = actual_weights.subtract(estimated_weights);
+		RealMatrix edge_weight_errors = est_weights.subtract(obs_weights);
 		return edge_weight_errors;
 	}
 	
-	static RealMatrix ratingErrors(RealMatrix estimated_ratings, RealMatrix actual_ratings) {
+	static RealMatrix ratingErrors(RealMatrix est_ratings, RealMatrix obs_ratings) {
 		// XXX: many ratings r_{u,i} are missing as u may not rate i. Again we should exclude the errors from these missing ratings by  
 		// similar trick i.e. force the missing ratings equal to estimated values (so that the errors vanish)  
-		actual_ratings = fillNAs(actual_ratings, estimated_ratings);
-		RealMatrix rating_errors = actual_ratings.subtract(estimated_ratings);
+		obs_ratings = fillNAs(obs_ratings, est_ratings);
+		RealMatrix rating_errors = est_ratings.subtract(obs_ratings);
 		return rating_errors;
 	}
 	

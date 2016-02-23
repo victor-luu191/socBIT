@@ -106,6 +106,7 @@ public class GradCal {
 	}
 	
 	/**
+	 * Wrapper for calculations of gradient of item topic feats
 	 * @param itemIndex
 	 * @param cParams
 	 * @param topicLambda
@@ -164,7 +165,7 @@ public class GradCal {
 			sum = sum.add(userTopicFeat.mapMultiply(weighted_rating_err).mapMultiply(logisDiff));
 		}
 		
-		topicGrad = topicGrad.subtract(sum);
+		topicGrad = topicGrad.add(sum);
 		return topicGrad;
 	}
 
@@ -193,7 +194,7 @@ public class GradCal {
 
 		double weightLambda = hypers.weightLambda;
 		RealVector bigSum = rating_sum.add(edge_weight_sum.mapMultiply(weightLambda));
-		topicGrad = topicGrad.subtract(bigSum.mapMultiply(params.userDecisionPrefs[u])); 	// see Eqn. 26
+		topicGrad = topicGrad.add(bigSum.mapMultiply(params.userDecisionPrefs[u])); 	// see Eqn. 26
 		return topicGrad;
 	}
 	
@@ -215,7 +216,7 @@ public class GradCal {
 			}
 		}
 		
-		itemTopicGrad = itemTopicGrad.subtract(sum);
+		itemTopicGrad = itemTopicGrad.add(sum);
 		return itemTopicGrad;
 	}
 
@@ -228,7 +229,7 @@ public class GradCal {
 		RealVector influenceePart = compInfluenceePart(u, params, rating_errors);
 		
 		RealVector sum = personal_part.mapMultiply(alpha).add(influenceePart.mapMultiply(1 - alpha));
-		userTopicGrad = userTopicGrad.subtract(sum); 
+		userTopicGrad = userTopicGrad.add(sum); 
 		return userTopicGrad;
 	}
 
@@ -296,7 +297,7 @@ public class GradCal {
 			double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, itemIndex));
 			sum = sum.add(userBrandFeat.mapMultiply(weighted_rating_err).mapMultiply(logisDiff));
 		}
-		nextBrandGrad = nextBrandGrad.subtract(sum);
+		nextBrandGrad = nextBrandGrad.add(sum);
 		return nextBrandGrad;
 	}
 	
@@ -325,7 +326,8 @@ public class GradCal {
 		
 		double weightLambda = hypers.weightLambda;
 		RealVector bigSum = rating_sum.add(edge_weight_sum.mapMultiply(weightLambda));
-		nextBrandGrad = nextBrandGrad.subtract(bigSum.mapMultiply(1 - params.userDecisionPrefs[u]));	// see Eqn. 27
+		
+		nextBrandGrad = nextBrandGrad.add(bigSum.mapMultiply(1 - params.userDecisionPrefs[u]));	// see Eqn. 27
 		return nextBrandGrad;
 	}
 	
@@ -360,7 +362,7 @@ public class GradCal {
 		
 		double weightLambda = hypers.weightLambda;
 		double bigSum = rating_sum + weightLambda * edge_weight_sum;
-		decisionPrefDiff = decisionPrefDiff - bigSum;
+		decisionPrefDiff = decisionPrefDiff + bigSum;
 		return decisionPrefDiff;
 	}
 	
