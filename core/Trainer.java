@@ -20,7 +20,7 @@ public class Trainer {
 	private static final double EPSILON = 1;
 //	private static final double INVERSE_STEP = 0.5;
 	private static final double GAMMA = Math.pow(10, -4);
-	private static final double EPSILON_STEP = Math.pow(10, -20);
+	private static final double EPSILON_STEP = Math.pow(2, -20);
 	
 	Dataset ds;
 	
@@ -121,8 +121,9 @@ public class Trainer {
 		Params nParams = buildParams(cParams, this.model);
 		boolean sufficentReduction = false;
 		
+		System.out.println("function diff, squared params diff, necessary reduction amount" );
 		while (!sufficentReduction && (stepSize > EPSILON_STEP)) {
-			stepSize = stepSize/10 ;
+			stepSize = stepSize/2 ;
 			nParams = Updater.update(cParams, stepSize, cGrad, this.model);
 			// todo: may need some projection here to guarantee some constraints
 			double nValue = calculator.objValue(nParams);
@@ -130,9 +131,8 @@ public class Trainer {
 			double sqParamDiff = sqDiff(nParams, cParams);
 			double reduction = - GAMMA/stepSize * sqParamDiff;
 			
-			System.out.println("difference between new value and current value of objective function: " + funcDiff);
-			System.out.println("squared difference bw new params and current params: " + sqParamDiff);
-			System.out.println("necessary reduction amount: " + reduction);
+			System.out.println(funcDiff + ", " + sqParamDiff + "," + reduction);
+			
 			sufficentReduction = (funcDiff < reduction);
 			
 			if (funcDiff == 0) {
