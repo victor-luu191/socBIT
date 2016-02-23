@@ -57,7 +57,7 @@ public class Experiments {
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
 			Params socBIT_params = trainBySocBIT(ds, numTopic);
-			Params ste_params = trainBySTE(ds, numTopic);
+//			Params ste_params = trainBySTE(ds, numTopic);
 			
 //			Errors errors = compDiff(socBIT_params, gt_params);
 //			errStr += numTopic + ","  + errors.topicUser + "," + errors.topicItem + "," + errors.brandUser + "," + errors.brandItem + "," + 
