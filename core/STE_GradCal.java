@@ -42,7 +42,8 @@ public class STE_GradCal extends GradCal {
 		return grad;
 	}
 	
-	private RealVector itemTopicGrad(Params params, int itemIndex, RealMatrix rating_errors) {
+	@Override
+	RealVector itemTopicGrad(Params params, int itemIndex, RealMatrix rating_errors) {
 		
 		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
 		RealVector itemTopicGrad = itemTopicFeats.mapMultiply(hypers.topicLambda);
