@@ -14,7 +14,7 @@ public class SocBIT_Params extends Params {
 
 	public RealMatrix brandUser;	// represent brand interests of users, later need to normalize for each user
 	public RealMatrix brandItem;	// represent an item's popularity under each of its producing brand 
-							// 	if a brand b does not produce an item i then the entry (i,b) is simply 0	
+									// 	if a brand b does not produce an item i then the entry (i,b) is simply 0	
 	
 	/**
 	 * represent decision preference of users i.e. whether a user prefers brand-based or topic-based adopts
@@ -28,8 +28,8 @@ public class SocBIT_Params extends Params {
 		super(topicUser, topicItem);
 		
 		this.userDecisionPrefs = userDecisionPrefs;
-		this.brandUser = brandUser;
-		this.brandItem = brandItem;
+		this.brandUser = brandUser.copy();
+		this.brandItem = brandItem.copy();
 	}
 
 	/**
@@ -40,6 +40,7 @@ public class SocBIT_Params extends Params {
 	 * @param numBrand
 	 */
 	public SocBIT_Params(int numUser, int numItem, int numBrand, int numTopic) {
+		
 		super(numUser, numItem, numTopic);
 		initUserTopicFeats(numUser, numTopic);
 		initItemTopicFeats(numItem, numTopic);
@@ -58,8 +59,8 @@ public class SocBIT_Params extends Params {
 		super(params.topicUser, params.topicItem);
 		
 		userDecisionPrefs = params.userDecisionPrefs;
-		brandUser = params.brandUser;
-		brandItem = params.brandItem;
+		brandUser = params.brandUser.copy();
+		brandItem = params.brandItem.copy();
 	}
 	
 	private void initItemBrandFeats(int numItem, int numBrand) {
