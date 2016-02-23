@@ -9,12 +9,12 @@ import org.apache.commons.math3.linear.RealVector;
 import defs.Dataset;
 import defs.Hypers;
 
-class STE_Calculator extends RecSysCalculator {
+class STE_Cal extends RecSysCal {
 	
 	Dataset ds; 
 	Hypers hypers;
 	
-	public STE_Calculator(Dataset ds, Hypers hypers) {
+	public STE_Cal(Dataset ds, Hypers hypers) {
 		super();
 		this.ds = ds;
 		this.hypers = hypers;

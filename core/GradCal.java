@@ -56,7 +56,7 @@ public class GradCal {
 	 */
 	SocBIT_Params socBIT_Grad(SocBIT_Params params) {
 		
-		SocBIT_Calculator socBIT_Estimator = new SocBIT_Calculator(ds, hypers);
+		SocBIT_Cal socBIT_Estimator = new SocBIT_Cal(ds, hypers);
 		estimated_ratings = socBIT_Estimator.estRatings(params);
 		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
 		
@@ -85,7 +85,7 @@ public class GradCal {
 	
 	Params ste_Grad(Params params) {
 		
-		STE_Calculator ste_estimator = new STE_Calculator(ds, hypers);
+		STE_Cal ste_estimator = new STE_Cal(ds, hypers);
 		estimated_ratings = ste_estimator.estRatings(params);
 		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);

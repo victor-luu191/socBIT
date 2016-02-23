@@ -7,13 +7,13 @@ import org.apache.commons.math3.linear.*;
 import defs.Dataset;
 import defs.Hypers;
 
-class SocBIT_Calculator extends RecSysCalculator {
+class SocBIT_Cal extends RecSysCal {
 	
 	Dataset ds; 
 	Hypers hypers;
 	private RealMatrix idMat;
 
-	public SocBIT_Calculator(Dataset ds, Hypers hypers) {
+	public SocBIT_Cal(Dataset ds, Hypers hypers) {
 		this.ds = ds;
 		this.hypers = hypers;
 		idMat = MatrixUtils.createRealIdentityMatrix(ds.numUser);

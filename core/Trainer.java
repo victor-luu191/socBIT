@@ -30,7 +30,7 @@ public class Trainer {
 	Hypers hypers;
 	private int maxIter;
 	private double stepSize;
-	private RecSysCalculator calculator;
+	private RecSysCal calculator;
 	
 	public Trainer(String model, Dataset ds, int numTopic, Hypers hypers, int maxIter) throws InvalidModelException {
 		this.model = model;
@@ -88,13 +88,13 @@ public class Trainer {
 		return cParams;
 	}
 
-	private RecSysCalculator buildCalculator(String model) throws InvalidModelException {
+	private RecSysCal buildCalculator(String model) throws InvalidModelException {
 		
 		if (model.equalsIgnoreCase("socBIT")) {
-			return new SocBIT_Calculator(ds, hypers);
+			return new SocBIT_Cal(ds, hypers);
 		} else {
 			if (model.equalsIgnoreCase("STE")) {
-				return new STE_Calculator(ds, hypers);
+				return new STE_Cal(ds, hypers);
 			} else {
 				throw new InvalidModelException();
 			}
