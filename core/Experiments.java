@@ -177,7 +177,8 @@ public class Experiments {
 		return learned_params;
 	}
 	/**
-	 * Make predictions using specified {@link params} and check with ground truth {@link test_ds} to obtain ... evaluation metrics
+	 * Make predictions using specified {@link params} and check with ground truth {@link test_ds} to obtain ... 
+	 * evaluation metrics
 	 * @param params
 	 * @param test_ds
 	 */
@@ -241,10 +242,10 @@ public class Experiments {
 	}
 
 	private static Hypers assignHypers4SocBIT() {
-		double topicLambda = 10;
-		double brandLambda = 100;
-		double weightLambda = 100;
-		double decisionLambda = 10;
+		double topicLambda = 0.1;
+		double brandLambda = 0.5;
+		double weightLambda = 0.001;
+		double decisionLambda = 0.1;
 		Hypers hypers = Hypers.setBySocBIT(topicLambda, brandLambda, weightLambda, decisionLambda);
 		return hypers;
 	}
