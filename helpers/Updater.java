@@ -20,9 +20,6 @@ public class Updater {
 	
 	private static Params updateItemComponents(Params cParams, Params cGrad, double stepSize, String model) {
 		
-//		int numUser = getNumUser(cParams);	int numItem = getNumItem(cParams);	int numTopic = getNumTopic(cParams);
-//		Params nParams = new Params(numUser, numItem, numTopic);
-		
 		Params nParams = new Params(cParams);
 		if (model.equalsIgnoreCase("socBIT")) {//cParams instanceof SocBIT_Params && nParams instanceof SocBIT_Params
 			nParams = updateItemParamsBySocBIT( (SocBIT_Params) cParams, (SocBIT_Params) cGrad, stepSize);
@@ -33,14 +30,6 @@ public class Updater {
 			}
 		}
 		return nParams;
-	}
-
-	private static int getNumTopic(Params params) {
-		return params.topicItem.getRowDimension();
-	}
-
-	private static int getNumItem(Params params) {
-		return params.topicItem.getColumnDimension();
 	}
 
 	private static int getNumUser(Params params) {
@@ -77,15 +66,16 @@ public class Updater {
 	private static SocBIT_Params updateItemParamsBySocBIT(SocBIT_Params params, SocBIT_Params cGrad, double stepSize) {
 		
 		SocBIT_Params nParams = new SocBIT_Params(params);
+		
 		int numItem = params.topicItem.getColumnDimension();
 		for (int i = 0; i < numItem; i++) {
 			// topic component
-			RealVector curTopicFeat = params.topicItem.getColumnVector(i);
+			RealVector curTopicFeat = params.topicItem.getColumnVector(i).copy();
 			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
 			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
 			nParams.topicItem.setColumnVector(i, nextTopicFeat);
 			// brand component
-			RealVector curBrandFeat = params.brandItem.getColumnVector(i);
+			RealVector curBrandFeat = params.brandItem.getColumnVector(i).copy();
 			RealVector brandDescent = cGrad.brandItem.getColumnVector(i).mapMultiply(-stepSize);
 			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
 			nParams.brandItem.setColumnVector(i, nextBrandFeat);
