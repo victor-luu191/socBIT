@@ -26,11 +26,11 @@ public class SocBIT_GradCal extends GradCal {
 		SocBIT_Params castParams = (SocBIT_Params) params;
 		
 		estimated_ratings = calculator.estRatings(castParams);
-		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
 		rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);					// estimated_ratings
 		
 		estimated_weights = calculator.estWeights(castParams);
-		RealMatrix bounded_weights = UtilFuncs.bound(estimated_weights);
+		RealMatrix bounded_weights = UtilFuncs.cutoff(estimated_weights);
 		edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);	// estimated_weights
 		
 		SocBIT_Params grad = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, this.numTopic);
@@ -179,7 +179,8 @@ public class SocBIT_GradCal extends GradCal {
 			RealVector beta_i = params.brandItem.getColumnVector(i);
 			double topicSim = theta_u.dotProduct(theta_i);
 			double brandSim = beta_u.dotProduct(beta_i);
-			double ratingLogisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
+			double entry = estimated_ratings.getEntry(u, i);
+			double ratingLogisDiff = UtilFuncs.logisDiff(entry);
 			rating_sum += rating_errors.getEntry(u, i) * (topicSim - brandSim) * ratingLogisDiff;
 		}
 		

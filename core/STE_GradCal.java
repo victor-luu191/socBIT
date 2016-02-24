@@ -42,7 +42,7 @@ public class STE_GradCal extends GradCal {
 
 	private void calRatingErrors(Params params) {
 		estimated_ratings = calculator.estRatings(params);
-		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
 		rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
 	}
 	
