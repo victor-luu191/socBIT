@@ -163,7 +163,7 @@ public class Experiments {
 
 	private static Params trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
 		
-		System.out.println("Training by socBIT model...");
+		System.out.println("Training by socBIT model");
 		
 		String resDir = "result/syn/N" + ds.numUser + "/socBIT/numTopic" + numTopic + "/" ; // "/unif/numTopic" + numTopic + "/"
 		if (!Files.exists(Paths.get(resDir))) {
@@ -211,13 +211,13 @@ public class Experiments {
 		Hypers hypers = null;
 		if (model.equalsIgnoreCase("socBIT")) {
 			hypers = assignHypers4SocBIT();
-			System.out.println("Initializing a regularized trainer for SocBIT model. The trainer is assigned " + numTopic + " topics.");
-			printRegConst(hypers);
+			System.out.println("Try " + numTopic + " topics. Start training...");
+//			printRegConst(hypers);
 		} 
 		else {
 			if (model.equalsIgnoreCase("STE")) {
 				hypers = assignHypers4STE();
-				System.out.println("The trainer is assigned " + numTopic + " topics.");
+				System.out.println("Try " + numTopic + " topics.");
 			} else {
 				throw new InvalidModelException();
 			}

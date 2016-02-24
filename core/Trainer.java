@@ -15,7 +15,7 @@ public class Trainer {
 	private static final double EPSILON = 1;
 //	private static final double INVERSE_STEP = 0.5;
 	private static final double GAMMA = Math.pow(10, -4);
-	private static final double EPSILON_STEP = Math.pow(2, -20);
+	private static final double EPSILON_STEP = Math.pow(2, -10);
 	
 	Dataset ds;
 	
@@ -33,7 +33,6 @@ public class Trainer {
 		this.numTopic = numTopic;
 		this.hypers = hypers;
 		this.maxIter = maxIter;
-		stepSize = 1;	// initial stepsize
 		calculator = buildCalculator(model);
 	}
 	
@@ -110,7 +109,6 @@ public class Trainer {
 	}
 
 	private void printStartMsg() {
-		System.out.println("Start training...");
 		System.out.println("Iter, Objective value");
 	}
 
@@ -126,10 +124,11 @@ public class Trainer {
 	
 	private Params lineSearch(Params cParams, Params cGrad, double cValue) throws ParamModelMismatchException, InvalidModelException {
 		
-		Params nParams = buildParams(cParams, this.model);
+		Params nParams = null;	// buildParams(cParams, this.model)
 		boolean sufficentReduction = false;
 		
 		System.out.println("function diff, squared params diff, necessary reduction amount" );
+		stepSize = 1;	
 		while (!sufficentReduction && (stepSize > EPSILON_STEP)) {
 			stepSize = stepSize/2 ;
 			nParams = Updater.update(cParams, stepSize, cGrad, this.model);
@@ -160,15 +159,15 @@ public class Trainer {
 		}
 	}
 
-	private Params buildParams(Params cParams, String model) throws ParamModelMismatchException, InvalidModelException {
+	private Params buildParams(Params params, String model) throws ParamModelMismatchException, InvalidModelException {
 		
 		if (model.equalsIgnoreCase("STE")) {
-			return cParams;
+			return params;
 		} 
 		else {
 			if (model.equalsIgnoreCase("socBIT")) {
-				if (cParams instanceof SocBIT_Params) {
-					return (SocBIT_Params) cParams;
+				if (params instanceof SocBIT_Params) {
+					return (SocBIT_Params) params;
 				} 
 				else {
 					String msg = "Input params type and model mismatch!!!";
