@@ -27,9 +27,6 @@ public class Params {
 	public Params(Params params) {
 		topicItem = params.topicItem.copy();
 		topicUser = params.topicUser.copy();
-		
-//		new Params(params.topicUser, params.topicItem);
-
 	}
 
 	protected void initItemTopicFeats(int numItem, int numTopic) {
