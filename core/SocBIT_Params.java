@@ -6,12 +6,9 @@ import java.util.Arrays;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
 
 public class SocBIT_Params extends Params {
 	
-	private static final double EPSILON = Math.pow(10, -1);
-
 	public RealMatrix brandUser;	// represent brand interests of users, later need to normalize for each user
 	public RealMatrix brandItem;	// represent an item's popularity under each of its producing brand 
 									// 	if a brand b does not produce an item i then the entry (i,b) is simply 0	
@@ -66,20 +63,16 @@ public class SocBIT_Params extends Params {
 	private void initItemBrandFeats(int numItem, int numBrand) {
 		
 		brandItem = new Array2DRowRealMatrix(numBrand, numItem);
-		RealVector unitVector = unitVector(numBrand);
-		RealVector smallVector = unitVector.mapMultiply(EPSILON);
 		for (int i = 0; i < numItem; i++) {
-			brandItem.setColumnVector(i, smallVector);	// unitVector
+			brandItem.setColumnVector(i, uniformVector(numBrand));	 
 		}
 	}
 
 	private void initUserBrandFeats(int numUser, int numBrand) {
 		
 		brandUser = new Array2DRowRealMatrix(numBrand, numUser);
-		RealVector unitVector = unitVector(numBrand);
-		RealVector smallVector = unitVector.mapMultiply(EPSILON);
 		for (int u = 0; u < numUser; u++) {
-			brandUser.setColumnVector(u, smallVector);	// unitVector
+			brandUser.setColumnVector(u, uniformVector(numBrand));	 
 		}
 	}
 
