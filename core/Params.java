@@ -66,7 +66,7 @@ public class Params {
 		}
 	}
 
-	private RealVector uniformVector(int size) {
+	protected RealVector uniformVector(int size) {
 		RealVector unifVector = new ArrayRealVector(size);
 		unifVector = unifVector.mapAdd(1.0 / size);
 		return unifVector;
