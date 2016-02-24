@@ -27,7 +27,7 @@ public class SocBIT_Params extends Params {
 		
 		super(topicUser, topicItem);
 		
-		this.userDecisionPrefs = userDecisionPrefs;
+		this.userDecisionPrefs = copyOf(userDecisionPrefs);
 		this.brandUser = brandUser.copy();
 		this.brandItem = brandItem.copy();
 	}
@@ -58,11 +58,11 @@ public class SocBIT_Params extends Params {
 		
 		super(params.topicUser, params.topicItem);
 		
-		userDecisionPrefs = params.userDecisionPrefs;
+		userDecisionPrefs = copyOf(params.userDecisionPrefs);
 		brandUser = params.brandUser.copy();
 		brandItem = params.brandItem.copy();
 	}
-	
+
 	private void initItemBrandFeats(int numItem, int numBrand) {
 		
 		brandItem = new Array2DRowRealMatrix(numBrand, numItem);
@@ -107,4 +107,7 @@ public class SocBIT_Params extends Params {
 		return brandDiff;
 	}
 	
+	private double[] copyOf(double[] arr) {
+		return Arrays.copyOf(arr, arr.length);
+	}
 }
