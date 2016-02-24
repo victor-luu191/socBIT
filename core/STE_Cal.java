@@ -64,11 +64,11 @@ class STE_Cal extends RecSysCal {
 		return estimated_ratings;
 	}
 
-	private RealMatrix calRatingErrors(Params params) {
+	RealMatrix calRatingErrors(Params params) {
 		
 //		STE_Calculator calculator = new STE_Calculator(params, alpha, ds.edge_weights);
 		RealMatrix estimated_ratings = estRatings(params);
-		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
 		return rating_errors;
 	}

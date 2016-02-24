@@ -36,11 +36,12 @@ class SocBIT_Cal extends RecSysCal {
 		return val;
 	}
 	
-	RealMatrix estRatings(SocBIT_Params params) {
+	RealMatrix estRatings(Params params) {
 		
-		DiagonalMatrix decisionPrefs = new DiagonalMatrix(params.userDecisionPrefs);
-		RealMatrix topicRatings = decisionPrefs.multiply(params.topicUser.transpose()).multiply(params.topicItem);
-		RealMatrix brandRatings = idMat.subtract(decisionPrefs).multiply(params.brandUser.transpose()).multiply(params.brandItem);
+		SocBIT_Params castParams = (SocBIT_Params) params;
+		DiagonalMatrix decisionPrefs = new DiagonalMatrix(castParams.userDecisionPrefs);
+		RealMatrix topicRatings = decisionPrefs.multiply(castParams.topicUser.transpose()).multiply(castParams.topicItem);
+		RealMatrix brandRatings = idMat.subtract(decisionPrefs).multiply(castParams.brandUser.transpose()).multiply(castParams.brandItem);
 		RealMatrix est_ratings =  topicRatings.add(brandRatings); 
 		return est_ratings;
 	}
@@ -54,16 +55,16 @@ class SocBIT_Cal extends RecSysCal {
 		return est_edge_weights;
 	}
 
-	RealMatrix calRatingErrors(SocBIT_Params params) {
+	RealMatrix calRatingErrors(Params params) {
 		RealMatrix estimated_ratings = estRatings(params);
-		RealMatrix bounded_ratings = UtilFuncs.bound(estimated_ratings);
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
 		return rating_errors;
 	}
 	
 	RealMatrix calEdgeWeightErrors(SocBIT_Params params) {
 		RealMatrix estimated_weights = estWeights(params);
-		RealMatrix bounded_weights = UtilFuncs.bound(estimated_weights);
+		RealMatrix bounded_weights = UtilFuncs.cutoff(estimated_weights);
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);
 		return edge_weight_errors;
 	}
