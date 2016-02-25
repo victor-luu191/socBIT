@@ -1,5 +1,7 @@
 package core;
 
+import helpers.DataLoader;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,7 +31,6 @@ import defs.ParamModelMismatchException;
 public class Experiments {
 
 	
-	private static int maxNumUser = 2000;
 	private static int maxNumItem = 2000;
 	private static final int maxDim = maxNumItem;
 	
@@ -45,29 +46,41 @@ public class Experiments {
 
 		// TODO: switch to the pkg org.kohsuke.args4j to enable named args
 		String dataDir = "data/syn/N" + numUser + "/unif/";	// or args[0]
-		Dataset ds = loadData(dataDir, numBrand);
-//		double train_ratio = 0.8;
-//		split(ds, train_ratio);
+		Dataset ds = DataLoader.load(dataDir, numBrand);
+		double train_ratio = 0.8;
+		split(ds, train_ratio);
 		
 		int minK = 5;
 		int maxK = 15;
-//		String gtParamDir = dataDir + "true_params/";
-//		Parameters gt_params = loadParams(gtParamDir);
-//		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
+		String gtParamDir = dataDir + "true_params/";
+		Params gt_params = loadParams(gtParamDir);
+		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
+		Params socBIT_params = null;
+		
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
-			Params socBIT_params = trainBySocBIT(ds, numTopic);
-//			Params ste_params = trainBySTE(ds, numTopic);
+			socBIT_params = trainBySocBIT(ds, numTopic);
+			Errors errors = compDiff( (SocBIT_Params) socBIT_params, (SocBIT_Params) gt_params);
+			errStr += concat(numTopic, errors) + "\n";
 			
-//			Errors errors = compDiff(socBIT_params, gt_params);
-//			errStr += numTopic + ","  + errors.topicUser + "," + errors.topicItem + "," + errors.brandUser + "," + errors.brandItem + "," + 
-//						errors.decisionPrefs + "\n";
+//			Params ste_params = trainBySTE(ds, numTopic);
 		}	
-//		String fErrors = "result/syn/N" + ds.numUser + "/unif/" + "/" ;
-//		Savers.save(errStr, fErrors);
-//		predict(learned_params, test_ds);
+		
+		String fErrors = "result/syn/N" + ds.numUser + "/unif/" + "/" ;
+		Savers.save(errStr, fErrors);
+		String resDir = "result/syn/N" + numUser + "/unif/";
+		save(socBIT_params, resDir);
+		
+		predict(socBIT_params, test_ds);
+	}
+
+	private static String concat(int numTopic, Errors errors) {
+		return numTopic + ","  + 	errors.topicUser + "," + errors.topicItem + "," + 
+									errors.brandUser + "," + errors.brandItem + "," + 
+									errors.decisionPrefs ;
 	}
 	
+	@SuppressWarnings("unused")
 	private static Params trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
 		
 		System.out.println("Training by STE model...");
@@ -119,28 +132,6 @@ public class Experiments {
 		return new SocBIT_Params(decPrefs, topicUser, brandUser, topicItem, brandItem);
 	}
 
-	private static RealMatrix loadMat(String gtParamsDir, String fname) throws IOException {
-		
-		RealMatrix matrix = new Array2DRowRealMatrix(maxDim, maxDim);
-		BufferedReader reader = new BufferedReader(new FileReader(gtParamsDir + fname));
-		
-		int numRow = 0;
-		
-		String line = reader.readLine();
-		int numCol = line.split(",").length - 1;	// bc the first column contains row indices not values
-		while ((line = reader.readLine()) != null) {
-			numRow ++;
-			String[] fields = line.split(",");
-			int row = Integer.parseInt(fields[0].replace("\"", ""));
-			for (int col = 1; col < fields.length; col++) {
-				matrix.setEntry(row, col, Double.parseDouble(fields[col]));
-			}
-		}
-		matrix = matrix.getSubMatrix(1, numRow, 1, numCol);
-		reader.close();
-		return matrix;
-	}
-
 	private static double[] loadDecPref(String gtParamsDir) throws FileNotFoundException, IOException {
 		
 		String fname = gtParamsDir + "/decision_pref.csv";
@@ -176,6 +167,7 @@ public class Experiments {
 //		save(learned_params, resDir);
 		return learned_params;
 	}
+	
 	/**
 	 * Make predictions using specified {@link params} and check with ground truth {@link test_ds} to obtain ... 
 	 * evaluation metrics
@@ -184,25 +176,39 @@ public class Experiments {
 	 */
 	private static void predict(Params params, Dataset test_ds) {
 		// TODO Auto-generated method stub
-		
 	}
 
-	private static void save(SocBIT_Params params, String resDir) throws IOException {
+	private static void save(Params params, String resDir) throws IOException {
 		
+		if (params instanceof SocBIT_Params) {
+			saveTopicComponents(params, resDir);
+			saveBrandComponents(params, resDir);
+		}
+		else {
+			saveTopicComponents(params, resDir);
+		}
+	}
+
+	private static void saveBrandComponents(Params params, String resDir)
+			throws IOException {
+		SocBIT_Params castParams = (SocBIT_Params) params;
+		String userBrandFeat_file = resDir + "user_brand_feats.csv";
+		Savers.save(castParams.brandUser.toString(), userBrandFeat_file);
+		
+		String itemBrandFeat_file = resDir + "item_brand_feats.csv";
+		Savers.save(castParams.brandItem.toString(), itemBrandFeat_file);
+		
+		String decisionPref_file = resDir + "decision_prefs.csv";
+		Savers.save(Arrays.toString(castParams.userDecisionPrefs), decisionPref_file);
+	}
+
+	private static void saveTopicComponents(Params params, String resDir)
+			throws IOException {
 		String userTopicFeat_file = resDir + "user_topic_feats.csv";
 		Savers.save(params.topicUser.toString(), userTopicFeat_file);
 		
-		String userBrandFeat_file = resDir + "user_brand_feats.csv";
-		Savers.save(params.brandUser.toString(), userBrandFeat_file);
-		
 		String itemTopicFeat_file = resDir + "item_topic_feats.csv";
 		Savers.save(params.topicItem.toString(), itemTopicFeat_file);
-		
-		String itemBrandFeat_file = resDir + "item_brand_feats.csv";
-		Savers.save(params.brandItem.toString(), itemBrandFeat_file);
-		
-		String decisionPref_file = resDir + "decision_prefs.csv";
-		Savers.save(Arrays.toString(params.userDecisionPrefs), decisionPref_file);
 	}
 
 	private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
@@ -228,6 +234,7 @@ public class Experiments {
 		return trainer;
 	}
 
+	@SuppressWarnings("unused")
 	private static void printRegConst(Hypers hypers) {
 		System.out.println("Regularization constants: ");
 		System.out.println("topicLambda, brandLambda, weightLambda, decisionLambda" );
@@ -260,88 +267,26 @@ public class Experiments {
 		
 	}
 
-	private static Dataset loadData(String dir, int numBrand) throws IOException {
+	private static RealMatrix loadMat(String gtParamsDir, String fname) throws IOException {
 		
-		RealMatrix ratings = loadRatings(dir + "ratings.csv");
-		RealMatrix edge_weights = loadEdgeWeights(dir + "edge_weights.csv");
-		return new Dataset(ratings, edge_weights, numBrand);
-	}
-
-	// read edge weights from the file and fill in 0s for user pairs with no connection
-	private static RealMatrix loadEdgeWeights(String fname) throws NumberFormatException, IOException {
+		RealMatrix matrix = new Array2DRowRealMatrix(maxDim, maxDim);
+		BufferedReader reader = new BufferedReader(new FileReader(gtParamsDir + fname));
 		
-		RealMatrix edge_weights = new Array2DRowRealMatrix(maxNumUser, maxNumUser);
-		Map<String, Integer> userMap = new HashMap<String, Integer>();
+		int numRow = 0;
 		
-		BufferedReader reader = new BufferedReader(new FileReader(fname));
-		String line = reader.readLine();	// skip header
+		String line = reader.readLine();
+		int numCol = line.split(",").length - 1;	// bc the first column contains row indices not values
 		while ((line = reader.readLine()) != null) {
+			numRow ++;
 			String[] fields = line.split(",");
-			String uid = fields[0];
-			String vid = fields[1];
-			double weight = Double.valueOf(fields[2]);
-			
-			int uIndex = lookUpIndex(uid, userMap);
-			int vIndex = lookUpIndex(vid, userMap);
-			edge_weights.setEntry(uIndex, vIndex, weight);
+			int row = Integer.parseInt(fields[0].replace("\"", ""));
+			for (int col = 1; col < fields.length; col++) {
+				matrix.setEntry(row, col, Double.parseDouble(fields[col]));
+			}
 		}
+		matrix = matrix.getSubMatrix(1, numRow, 1, numCol);
 		reader.close();
-		int numUser = userMap.size();
-		edge_weights = edge_weights.getSubMatrix(1, numUser, 1, numUser);	// rm redundant rows and cols
-		System.out.println("Loaded all edge weights.");
-//		System.out.println("first row of ede weights");
-//		System.out.println(edge_weights.getRowVector(0).toString());
-//		System.out.println();
-		return edge_weights;
-	}
-	private static RealMatrix loadRatings(String fname) throws IOException {
-		RealMatrix ratings = new Array2DRowRealMatrix(maxNumUser, maxNumItem);
-		
-		Map<String, Integer> itemMap = new HashMap<String, Integer>();
-		Map<String, Integer> userMap = new HashMap<String, Integer>();
-		
-		BufferedReader reader = new BufferedReader(new FileReader(fname));
-		String line = reader.readLine();	// skip header
-		while ((line = reader.readLine()) != null) {
-			String[] fields = line.split(",");
-			String uid = fields[0];
-			String itemId = fields[1];
-			double r = Double.valueOf(fields[2]);
-			
-			int userIndex = lookUpIndex(uid, userMap);
-			int itemIndex = lookUpIndex(itemId, itemMap);
-			ratings.setEntry(userIndex, itemIndex, r);
-		}
-		
-		reader.close();
-		int numUser = userMap.size();
-		int numItem = itemMap.size();
-		System.out.println("numUser = " + numUser  + ", numItem = " + numItem);
-		ratings = ratings.getSubMatrix(1, numUser, 1, numItem);		// rm redundant rows and cols
-		System.out.println("Loaded all ratings.");
-//		System.out.println("First row of ratings: ");
-//		System.out.println(ratings.getRowVector(0).toString());
-//		System.out.println();
-		return ratings;
-	}
-	
-	/**
-	 * Look up the index corresponding to the given {@link id} if {@link id} can be found in the map {@link id2Index}, 
-	 * Otherwise add the {@link id} to the map and increment the map {@link size} 
-	 * @param id
-	 * @param id2Index
-	 * @param size
-	 * @return
-	 */
-	private static int lookUpIndex(String id, Map<String, Integer> id2Index) {
-		
-		if (id2Index.containsKey(id)) {
-			return id2Index.get(id);
-		} else {
-			int size = id2Index.size() + 1;
-			id2Index.put(id, size);
-			return size;
-		}
+		return matrix;
 	}
 
 }
