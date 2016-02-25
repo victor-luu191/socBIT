@@ -36,13 +36,13 @@ public class Experiments {
 		double train_ratio = 0.8;
 		split(ds, train_ratio);
 		
-		int minK = 5;
-		int maxK = 15;
+		
 		String gtParamDir = dataDir + "true_params/";
 		Params gt_params = ParamLoader.load(gtParamDir);
 		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		Params socBIT_params = null;
 		
+		int minK = 5; int maxK = 15;
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
 			socBIT_params = trainBySocBIT(ds, numTopic);
