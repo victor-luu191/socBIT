@@ -1,6 +1,6 @@
 package core;
 
-import helpers.Updater;
+import helpers.ParamUpdater;
 import helpers.UtilFuncs;
 
 import java.io.IOException;
@@ -106,7 +106,7 @@ public class Trainer {
 			
 		while (!sufficentReduction && (stepSize > EPSILON_STEP)) {
 			stepSize = stepSize/2 ;
-			nParams = Updater.update(cParams, stepSize, cGrad, this.model);
+			nParams = ParamUpdater.update(cParams, stepSize, cGrad, this.model);
 			// todo: may need some projection here to guarantee some constraints
 			double nValue = calculator.objValue(nParams);
 			double funcDiff = nValue - cValue;
