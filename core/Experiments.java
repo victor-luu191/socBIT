@@ -46,8 +46,10 @@ public class Experiments {
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
 			socBIT_params = trainBySocBIT(ds, numTopic);
-			Errors errors = compDiff( (SocBIT_Params) socBIT_params, (SocBIT_Params) gt_params);
-			errStr += concat(numTopic, errors) + "\n";
+			if (numTopic == 10) {// 10 is currently the ground-truth number of topics
+				Errors errors = compDiff( (SocBIT_Params) socBIT_params, (SocBIT_Params) gt_params);
+				errStr += concat(numTopic, errors) + "\n";
+			}
 			
 //			Params ste_params = trainBySTE(ds, numTopic);
 		}	
@@ -68,6 +70,29 @@ public class Experiments {
 	private static void split(Dataset ds, double train_ratio) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
+		
+		int maxIter = 100;
+		
+		Hypers hypers = null;
+		if (model.equalsIgnoreCase("socBIT")) {
+			hypers = Hypers.assignBySocBIT();
+			System.out.println("Try " + numTopic + " topics. Start training...");
+//			printRegConst(hypers);
+		} 
+		else {
+			if (model.equalsIgnoreCase("STE")) {
+				hypers = Hypers.assignBySTE();
+				System.out.println("Try " + numTopic + " topics.");
+			} else {
+				throw new InvalidModelException();
+			}
+		}
+		
+		Trainer trainer = new Trainer(model, ds, numTopic, hypers, maxIter);
+		return trainer;
 	}
 	
 	private static Params trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
@@ -131,33 +156,6 @@ public class Experiments {
 		return new Errors(topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr);
 	}
 
-	private static RealVector toVector(double[] arr) {
-		return new ArrayRealVector(arr);
-	}
-
-	private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
-		
-		int maxIter = 100;
-		
-		Hypers hypers = null;
-		if (model.equalsIgnoreCase("socBIT")) {
-			hypers = assignHypers4SocBIT();
-			System.out.println("Try " + numTopic + " topics. Start training...");
-//			printRegConst(hypers);
-		} 
-		else {
-			if (model.equalsIgnoreCase("STE")) {
-				hypers = assignHypers4STE();
-				System.out.println("Try " + numTopic + " topics.");
-			} else {
-				throw new InvalidModelException();
-			}
-		}
-		
-		Trainer trainer = new Trainer(model, ds, numTopic, hypers, maxIter);
-		return trainer;
-	}
-
 	@SuppressWarnings("unused")
 	private static void printRegConst(Hypers hypers) {
 		System.out.println("Regularization constants: ");
@@ -165,22 +163,8 @@ public class Experiments {
 		System.out.println(hypers.topicLambda + "," + hypers.brandLambda + "," + hypers.weightLambda + "," + hypers.decisionLambda);
 	}
 
-	private static Hypers assignHypers4STE() {
-		double topicLambda = 10;
-		double alpha = 0.5;
-		// TODO Auto-generated method stub
-		return new Hypers(topicLambda, alpha);
+	private static RealVector toVector(double[] arr) {
+		return new ArrayRealVector(arr);
 	}
-
-	private static Hypers assignHypers4SocBIT() {
-		double topicLambda = 0.1;
-		double brandLambda = 0.5;
-		double weightLambda = 0.001;
-		double decisionLambda = 0.1;
-		Hypers hypers = Hypers.setBySocBIT(topicLambda, brandLambda, weightLambda, decisionLambda);
-		return hypers;
-	}
-
-	
 
 }

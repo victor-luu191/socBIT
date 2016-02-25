@@ -29,4 +29,20 @@ public class Hypers {
 	public static Hypers setBySTE(double topicLambda, double alpha) {
 		return new Hypers(topicLambda, alpha);
 	}
+
+	public static Hypers assignBySTE() {
+		double topicLambda = 10;
+		double alpha = 0.5;
+		// TODO Auto-generated method stub
+		return new Hypers(topicLambda, alpha);
+	}
+
+	public static Hypers assignBySocBIT() {
+		double topicLambda = 0.1;
+		double brandLambda = 0.5;
+		double weightLambda = 0.001;
+		double decisionLambda = 0.1;
+		Hypers hypers = setBySocBIT(topicLambda, brandLambda, weightLambda, decisionLambda);
+		return hypers;
+	}
 }
