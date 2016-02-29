@@ -3,6 +3,7 @@ package defs;
 import java.util.Optional;
 
 public class Errors {
+	
 	public double topicUser;
 	public double topicItem;
 	
@@ -10,13 +11,13 @@ public class Errors {
 	public Double brandItem;
 	public Double decisionPrefs;
 	
-	public Errors(double topicUser, double topicItem, Optional<Double> maybe_brandUser, Optional<Double> maybe_brandItem,
+	public Errors(double topicUser, double topicItem, Optional<Double> opt_brandUser, Optional<Double> opt_brandItem,
 					Optional<Double> maybe_decisionPrefs) {
 		
 		this.topicUser = topicUser;
 		this.topicItem = topicItem;
-		this.brandUser = maybe_brandUser.orElse(Double.NaN);
-		this.brandItem = maybe_brandItem.orElse(Double.NaN);
+		this.brandUser = opt_brandUser.orElse(Double.NaN);
+		this.brandItem = opt_brandItem.orElse(Double.NaN);
 		this.decisionPrefs = maybe_decisionPrefs.orElse(Double.NaN);
 	}
 

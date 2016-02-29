@@ -1,17 +1,18 @@
 package core;
 
 import helpers.ParamUpdater;
-import helpers.UtilFuncs;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import org.apache.commons.math3.linear.RealMatrix;
 
-import myUtil.Savers;
 import defs.Dataset;
 import defs.Hypers;
 import defs.InvalidModelException;
+import defs.NonConvergeException;
 import defs.ParamModelMismatchException;
+import defs.Result;
 
 public class Trainer {
 	
@@ -44,21 +45,18 @@ public class Trainer {
 	 * @param resDir
 	 * @return local optimal parameters which give a local minimum of the objective function (minimum errors + regularizers)
 	 * @throws IOException, InvalidModelException and  ParamModelMismatchException
+	 * @throws NonConvergeException 
 	 */
-	Params gradDescent(Params initParams, String resDir) throws IOException, InvalidModelException, ParamModelMismatchException {
+	Result gradDescent(Params initParams) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		printStartMsg();
 		int numIter = 0;
-//		StringBuilder sbParams = new StringBuilder("iter, ...");
-		StringBuilder sbObjValue = new StringBuilder("iter, obj_value (rating + edge_weight errors + regs), rating errors \n");
-		
 		Params cParams = buildParams(initParams, model);
 		double cValue = calculator.objValue(initParams);
-		sbObjValue = sbObjValue.append(numIter + "," + cValue + "\n");
 		
-		double sqError = getRatingError(cParams);
+		double ratingError = getRatingError(cParams);
 		
-		System.out.println(numIter + ", " + cValue + "," + sqError);
+		System.out.println(numIter + ", " + cValue + "," + ratingError);
 		double difference = Double.POSITIVE_INFINITY;
 		
 		GradCal gradCal = buildGradCal(model);
@@ -68,30 +66,38 @@ public class Trainer {
 			Params cGrad = gradCal.calculate(cParams);
 			Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = calculator.objValue(nParams);
-			sbObjValue = sbObjValue.append(numIter + "," + nValue + "\n");
+			
 			difference = nValue - cValue;
 			
 			// prep for next iter
 			cParams = buildParams(nParams, model);						
 			cValue = nValue;
-			sqError = getRatingError(cParams);
-			System.out.println(numIter + "," + cValue + ", " + sqError);
+			ratingError = getRatingError(cParams);
+			System.out.println(numIter + "," + cValue + ", " + ratingError);
 		}
 		
 		if (!isLarge(difference)) {
 			printConvergeMsg();
-			String fout = resDir + "obj_values.csv";
-			Savers.save(sbObjValue.toString(), fout);
-		} else {
-			System.out.println("Not converged yet but already exceeded the maximum number of iterations. Training stopped!!!");
+			Optional<Double> edgeWeightErr =  Optional.empty();
+			if (model.equalsIgnoreCase("socBIT")) {
+				edgeWeightErr = Optional.of(getEdgeWeightErr(cParams));
+			}
+			return new Result(cParams, ratingError, edgeWeightErr, cValue);
+		} 
+		else {
+			throw new NonConvergeException();
 		}
-		
-		return cParams;
+	}
+
+	private Double getEdgeWeightErr(Params params) {
+		SocBIT_Cal socBIT_Cal = (SocBIT_Cal) calculator;
+		RealMatrix edgeWeightErrors = socBIT_Cal.calEdgeWeightErrors((SocBIT_Params) params);
+		return square(edgeWeightErrors.getFrobeniusNorm());
 	}
 
 	private double getRatingError(Params params) {
 		RealMatrix rating_errors = calculator.calRatingErrors(params);
-		double sqError = UtilFuncs.square(rating_errors.getFrobeniusNorm());
+		double sqError = square(rating_errors.getFrobeniusNorm());
 		return sqError;
 	}
 
@@ -210,5 +216,9 @@ public class Trainer {
 
 	private boolean isLarge(double difference) {
 		return Math.abs(difference) > EPSILON;
+	}
+
+	private double square(double d) {
+		return Math.pow(d, 2);
 	}
 }
