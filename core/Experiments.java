@@ -7,6 +7,7 @@ import helpers.ParamSaver;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Optional;
 
 import myUtil.Savers;
 
@@ -39,25 +40,28 @@ public class Experiments {
 		
 		String gtParamDir = dataDir + "true_params/";
 		Params gt_params = ParamLoader.load(gtParamDir);
-		String errStr = "numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
+		String errStr = "model, numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		Params socBIT_params = null;
 		
 		int minK = 5; int maxK = 15;
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
 			socBIT_params = trainBySocBIT(ds, numTopic);
-			if (numTopic == 10) {// 10 is currently the ground-truth number of topics
-				Errors errors = compDiff( (SocBIT_Params) socBIT_params, (SocBIT_Params) gt_params);
-				errStr += concat(numTopic, errors) + "\n";
-			}
+			Params ste_params = trainBySTE(ds, numTopic);
 			
-//			Params ste_params = trainBySTE(ds, numTopic);
+			if (numTopic == 10) {// 10 is currently the ground-truth number of topics
+				Errors socBIT_errors = compDiff( (SocBIT_Params) socBIT_params, (SocBIT_Params) gt_params);
+				Errors ste_errors = compDiff(ste_params, gt_params);
+				errStr += concat("socBIT", numTopic, socBIT_errors) + "\n";
+				errStr += concat("STE", numTopic, ste_errors) + "\n" ;
+			}
 		}	
 		
-		String fErrors = "result/syn/N" + ds.numUser + "/unif/" + "/" ;
-		Savers.save(errStr, fErrors);
 		String resDir = "result/syn/N" + numUser + "/unif/";
 		ParamSaver.save(socBIT_params, resDir);
+		
+		String fErrors = resDir + "errors.csv" ;
+		Savers.save(errStr, fErrors);
 		
 		predict(socBIT_params, test_ds);
 	}
@@ -139,21 +143,29 @@ public class Experiments {
 		// TODO Auto-generated method stub
 	}
 	
-	private static String concat(int numTopic, Errors errors) {
-		return numTopic + ","  + 	errors.topicUser + "," + errors.topicItem + "," + 
-									errors.brandUser + "," + errors.brandItem + "," + 
-									errors.decisionPrefs ;
+	private static String concat(String model, int numTopic, Errors errors) {
+		return model + "," + numTopic + ","  + 	errors.toString();
 	}
 
-	private static Errors compDiff(SocBIT_Params params1, SocBIT_Params params2) {
+	private static Errors compDiff(Params params1, Params params2) {
 		
-		double topicUserErr = params1.topicUser.subtract(params2.topicUser).getFrobeniusNorm();
-		double topicItemErr = params1.topicItem.subtract(params2.topicItem).getFrobeniusNorm();
-		double brandUserErr = params1.brandUser.subtract(params2.brandUser).getFrobeniusNorm();
-		double brandItemErr = params1.brandItem.subtract(params2.brandItem).getFrobeniusNorm();
-		double decisionPrefErr = toVector(params1.userDecisionPrefs).subtract(toVector(params2.userDecisionPrefs)).getNorm();
-		
-		return new Errors(topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr);
+		if ((params1 instanceof SocBIT_Params) && (params2 instanceof SocBIT_Params)) {
+			
+			SocBIT_Params cast_p1 = (SocBIT_Params) params1;
+			SocBIT_Params cast_p2 = (SocBIT_Params) params2;
+			double topicUserErr = cast_p1.topicUser.subtract(cast_p2.topicUser).getFrobeniusNorm();
+			double topicItemErr = cast_p1.topicItem.subtract(cast_p2.topicItem).getFrobeniusNorm();
+			
+			Double brandUserErr = cast_p1.brandUser.subtract(cast_p2.brandUser).getFrobeniusNorm();
+			Double brandItemErr = cast_p1.brandItem.subtract(cast_p2.brandItem).getFrobeniusNorm();
+			Double decisionPrefErr = toVector(cast_p1.userDecisionPrefs).subtract(toVector(cast_p2.userDecisionPrefs)).getNorm();
+			return new Errors(topicUserErr, topicItemErr, Optional.of(brandUserErr), Optional.of(brandItemErr), Optional.of(decisionPrefErr));
+		} 
+		else {
+			double topicUserErr = params1.topicUser.subtract(params2.topicUser).getFrobeniusNorm();
+			double topicItemErr = params1.topicItem.subtract(params2.topicItem).getFrobeniusNorm();
+			return new Errors(topicUserErr, topicItemErr, Optional.empty(), Optional.empty(), Optional.empty());
+		}
 	}
 
 	@SuppressWarnings("unused")
