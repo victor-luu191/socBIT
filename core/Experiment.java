@@ -18,14 +18,21 @@ import defs.Dataset;
 import defs.Errors;
 import defs.Hypers;
 import defs.InvalidModelException;
+import defs.NonConvergeException;
 import defs.ParamModelMismatchException;
+import defs.Result;
 
-public class Experiments {
+public class Experiment {
 	
 	static Dataset train_ds;
 	static Dataset test_ds;
 	
-	public static void main(String[] args) throws IOException, InvalidModelException, ParamModelMismatchException {
+	public Experiment() {
+		// TODO Auto-generated constructor stub
+		
+	}
+	
+	public static void main(String[] args) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		// temporary value passing, later will read from file data_stats or itemInfo
 		int numUser = 1000;
@@ -40,30 +47,39 @@ public class Experiments {
 		
 		String gtParamDir = dataDir + "true_params/";
 		Params gt_params = ParamLoader.load(gtParamDir);
-		String errStr = "model, numTopic, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
-		Params socBIT_params = null;
+		
+		String resDir = "result/syn/N" + ds.numUser + "/";
+		String errDir = resDir + "errors/"; 		mkDir(errDir);
+		
+		
+		String allErrStr = "model, numTopic, ratingErr, edgeWeightErr, obj_value" + "\n";
 		
 		int minK = 5; int maxK = 15;
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
+			Result socBIT_result = trainBySocBIT(ds, numTopic);
+			Result ste_result = trainBySTE(ds, numTopic);
+			allErrStr += "socBIT, " + numTopic + "," + socBIT_result.toErrString() + "\n";
+			allErrStr += "STE, " + numTopic + "," + ste_result.toErrString() + "\n";
 			
-			socBIT_params = trainBySocBIT(ds, numTopic);
-			Params ste_params = trainBySTE(ds, numTopic);
+			SocBIT_Params socBIT_params = (SocBIT_Params) socBIT_result.learnedParams;
+			Params ste_params = ste_result.learnedParams;
+			String model = "socBIT";
+			save(socBIT_params, model, numTopic, resDir);
+			model = "STE";
+			save(ste_params, model, numTopic, resDir);
 			
 			if (numTopic == 10) {// 10 is currently the ground-truth number of topics
-				Errors socBIT_errors = compDiff( (SocBIT_Params) socBIT_params, (SocBIT_Params) gt_params);
-				Errors ste_errors = compDiff(ste_params, gt_params);
-				errStr += concat("socBIT", numTopic, socBIT_errors) + "\n";
-				errStr += concat("STE", numTopic, ste_errors) + "\n" ;
+				String paramErr = getParamErr(socBIT_params, ste_params, gt_params);
+				String fParamErr = errDir + "param_recover.csv" ;
+				Savers.save(paramErr, fParamErr);
 			}
 		}	
 		
-		String resDir = "result/syn/N" + numUser + "/unif/";
-		ParamSaver.save(socBIT_params, resDir);
+		String fErrors = errDir + "all_errors.csv";
+		Savers.save(allErrStr, fErrors);
 		
-		String fErrors = resDir + "errors.csv" ;
-		Savers.save(errStr, fErrors);
 		
-		predict(socBIT_params, test_ds);
+//		predict(socBIT_params, test_ds);
 	}
 	
 	/**
@@ -99,38 +115,26 @@ public class Experiments {
 		return trainer;
 	}
 	
-	private static Params trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
+	private static Result trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		System.out.println("Training by socBIT model");
 		
-		String resDir = "result/syn/N" + ds.numUser + "/socBIT/numTopic" + numTopic + "/" ; // "/unif/numTopic" + numTopic + "/"
-		if (!Files.exists(Paths.get(resDir))) {
-			Files.createDirectories(Paths.get(resDir));
-		} 
-		
 		Trainer trainer = initTrainer("socBIT", ds, numTopic);	// currently training on whole data set, switch to training set later	
 		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
-		Params learned_params = trainer.gradDescent(initParams, resDir);
-//		save(learned_params, resDir);
-		return learned_params;
+		Result result = trainer.gradDescent(initParams);
+		return result;
 	}
 	
-	@SuppressWarnings("unused")
-	private static Params trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException {
+	private static Result trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		System.out.println("Training by STE model...");
-		
-		String resDir = "result/syn/N" + ds.numUser + "/STE/numTopic" + numTopic + "/" ; // "/unif/numTopic" + numTopic + "/"
-		if (!Files.exists(Paths.get(resDir))) {
-			Files.createDirectories(Paths.get(resDir));
-		} 
 		
 		Trainer trainer = initTrainer("STE", ds, numTopic);	// currently training on whole data set, switch to training set later	
 		Params initParams = new Params(ds.numUser, ds.numItem, trainer.numTopic);
 		initParams.createFeatsUniformly();
-		Params learned_params = trainer.gradDescent(initParams, resDir);
-//		save(learned_params, resDir);
-		return learned_params;
+		Result result = trainer.gradDescent(initParams);
+		
+		return result;
 	}
 	
 	/**
@@ -178,5 +182,27 @@ public class Experiments {
 	private static RealVector toVector(double[] arr) {
 		return new ArrayRealVector(arr);
 	}
+	
+	private static void save(Params params, String model, int numTopic, String resDir) throws IOException {
+		
+		String name = resDir + model + "/" + "numTopic" + numTopic + "/";
+		mkDir(name);
+		ParamSaver.save(params, name);
+	}
 
+	private static void mkDir(String name) throws IOException {
+		if (!Files.exists(Paths.get(name))) {
+			Files.createDirectories(Paths.get(name));
+		}
+	}
+
+	private static String getParamErr(SocBIT_Params socBIT_params, Params ste_params, Params gt_params) {
+		
+		String paramErr = "model, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
+		Errors socBIT_errors = compDiff( socBIT_params, (SocBIT_Params) gt_params);
+		Errors ste_errors = compDiff(ste_params, gt_params);
+		paramErr += concat("socBIT", 10, socBIT_errors) + "\n";	// numTopic = 10
+		paramErr += concat("STE", 10, ste_errors) + "\n" ;		// numTopic = 10
+		return paramErr;
+	}
 }
