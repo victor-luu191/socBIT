@@ -36,7 +36,8 @@ public class Experiment {
 		
 		// temporary value passing, later will read from file data_stats or itemInfo
 		int numUser = 1000;
-		int numBrand = 20;	
+		int gt_numTopic = 5;
+		int numBrand = 9*gt_numTopic + 1;	
 
 		// TODO: switch to the pkg org.kohsuke.args4j to enable named args
 		String dataDir = "data/syn/N" + numUser + "/unif/";	// or args[0]
@@ -54,7 +55,8 @@ public class Experiment {
 		
 		String allErrStr = "model, numTopic, ratingErr, edgeWeightErr, obj_value" + "\n";
 		
-		int minK = 5; int maxK = 15;
+		int minK = 1; int maxK = 10;
+//		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			Result socBIT_result = trainBySocBIT(ds, numTopic);
 			Result ste_result = trainBySTE(ds, numTopic);
@@ -68,7 +70,7 @@ public class Experiment {
 			model = "STE";
 			save(ste_params, model, numTopic, resDir);
 			
-			if (numTopic == 10) {// 10 is currently the ground-truth number of topics
+			if (numTopic == gt_numTopic) {
 				String paramErr = getParamErr(socBIT_params, ste_params, gt_params);
 				String fParamErr = errDir + "param_recover.csv" ;
 				Savers.save(paramErr, fParamErr);
@@ -147,8 +149,8 @@ public class Experiment {
 		// TODO Auto-generated method stub
 	}
 	
-	private static String concat(String model, int numTopic, Errors errors) {
-		return model + "," + numTopic + ","  + 	errors.toString();
+	private static String concat(String model, Errors errors) {
+		return model + "," + 	errors.toString();
 	}
 
 	private static Errors compDiff(Params params1, Params params2) {
@@ -168,7 +170,8 @@ public class Experiment {
 		else {
 			double topicUserErr = params1.topicUser.subtract(params2.topicUser).getFrobeniusNorm();
 			double topicItemErr = params1.topicItem.subtract(params2.topicItem).getFrobeniusNorm();
-			return new Errors(topicUserErr, topicItemErr, Optional.empty(), Optional.empty(), Optional.empty());
+			Optional<Double> empty = Optional.empty();
+			return new Errors(topicUserErr, topicItemErr, empty, empty, empty);
 		}
 	}
 
@@ -201,8 +204,8 @@ public class Experiment {
 		String paramErr = "model, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		Errors socBIT_errors = compDiff( socBIT_params, (SocBIT_Params) gt_params);
 		Errors ste_errors = compDiff(ste_params, gt_params);
-		paramErr += concat("socBIT", 10, socBIT_errors) + "\n";	// numTopic = 10
-		paramErr += concat("STE", 10, ste_errors) + "\n" ;		// numTopic = 10
+		paramErr += concat("socBIT",  socBIT_errors) + "\n";	
+		paramErr += concat("STE",  ste_errors) + "\n" ;		
 		return paramErr;
 	}
 }
