@@ -113,7 +113,7 @@ public class STE_GradCal extends GradCal {
 		return personal_part;
 	}
 
-	private RealVector comboTopicFeat(RealVector userTopicFeats, int u, Params params) {
+	protected RealVector comboTopicFeat(RealVector userTopicFeats, int u, Params params) {
 		
 		RealVector combo_feat = userTopicFeats.mapMultiply(alpha);
 		RealVector friendFeats = new ArrayRealVector(numTopic);
