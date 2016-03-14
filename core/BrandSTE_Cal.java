@@ -1,5 +1,7 @@
 package core;
 
+import helpers.UtilFuncs;
+
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
@@ -8,43 +10,67 @@ import defs.Hypers;
 import defs.Params;
 import defs.SocBIT_Params;
 
-class BrandSTE extends STE_Cal {
+class BrandSTE_Cal extends STE_Cal {
 	
 	Dataset ds; 
 	Hypers hypers;
 	
-	public BrandSTE(Dataset ds, Hypers hypers) {
+	public BrandSTE_Cal(Dataset ds, Hypers hypers) {
 		super(ds, hypers);
 	}
 
 	@Override
 	double objValue(Params params) {
-		// TODO Auto-generated method stub
-		return 0;
+		return super.objValue(params);
 	}
 
 	@Override
 	RealMatrix estRatings(Params params) {
-		// TODO Auto-generated method stub
-		return null;
+		return super.estRatings(params);
 	}
 
 	@Override
 	RealMatrix calRatingErrors(Params params) {
-		// TODO Auto-generated method stub
-		return null;
+		return super.calRatingErrors(params);
+	}
+	
+	@Override
+	double regularization(Params params) {
+		
+		double topicPart = super.regularization(params);
+		double brandPart = regBrandFeats(params);
+		double decPart = regDecPref(params);
+		return topicPart + brandPart + decPart;
+	}
+
+	private double regDecPref(Params params) {
+		
+		SocBIT_Params castParams = (SocBIT_Params) params;
+		double sum = 0;
+		for (int u = 0; u < ds.numUser; u++) {
+			double decPref = castParams.userDecisionPrefs[u];
+			sum += UtilFuncs.square(decPref - 0.5);
+		}
+		return hypers.decisionLambda * sum;
+	}
+
+	private double regBrandFeats(Params params) {
+		SocBIT_Params castParams = (SocBIT_Params) params;
+		double userBrandFeatNorm = castParams.brandUser.getFrobeniusNorm();
+		double itemBrandFeatNorm = castParams.brandItem.getFrobeniusNorm();
+		double brandPart = hypers.brandLambda * (UtilFuncs.square(userBrandFeatNorm) + UtilFuncs.square(itemBrandFeatNorm));
+		return brandPart;
 	}
 	
 	@Override
 	double estOneRating(int u, int i, Params params) {
-		// TODO Auto-generated method stub
+		
 		SocBIT_Params castParams = (SocBIT_Params) params;
 		double topicRating = super.estOneRating(u, i, params);
 		double decPref = castParams.userDecisionPrefs[u];
-		double gamma = decPref * topicRating;
 		double brandRating = calBrandRating(u,i, castParams);
-		gamma += (1 - decPref)*brandRating;
-		return gamma;
+		
+		return decPref*topicRating + (1 - decPref)*brandRating;
 	}
 
 	private double calBrandRating(int u, int i, SocBIT_Params params) {
