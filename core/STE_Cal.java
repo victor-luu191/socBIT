@@ -25,12 +25,16 @@ class STE_Cal extends RecSysCal {
 	double objValue(Params params) {
 		
 //		System.out.println("calculating value of objective function ...");
-		double userFeatsNorm = params.topicUser.getFrobeniusNorm();
-		double itemFeatsNorm = params.topicItem.getFrobeniusNorm();
-		double val = hypers.topicLambda * (UtilFuncs.square(userFeatsNorm) + UtilFuncs.square(itemFeatsNorm));	// regularized part
 		
 		RealMatrix rating_errors = calRatingErrors(params);
-		val += UtilFuncs.square(rating_errors.getFrobeniusNorm());
+		double sqErr = UtilFuncs.square(rating_errors.getFrobeniusNorm());
+		return sqErr + regularization(params) ;
+	}
+
+	double regularization(Params params) {
+		double userFeatsNorm = params.topicUser.getFrobeniusNorm();
+		double itemFeatsNorm = params.topicItem.getFrobeniusNorm();
+		double val = hypers.topicLambda * (UtilFuncs.square(userFeatsNorm) + UtilFuncs.square(itemFeatsNorm));
 		return val;
 	}
 
