@@ -1,5 +1,8 @@
 package core;
 
+import helpers.UtilFuncs;
+
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
 import defs.Params;
@@ -45,8 +48,38 @@ class BrandSTE_GradCal extends STE_GradCal {
 	}
 	
 	private RealVector calItemBrandGrad(SocBIT_Params params, int i) {
-		// TODO Auto-generated method stub
-		return null;
+		
+		RealVector itemBrandFeats = params.brandItem.getColumnVector(i);
+		RealVector itemBrandGrad = itemBrandFeats.mapMultiply(hypers.brandLambda);
+		
+		RealVector sum = new ArrayRealVector(ds.numBrand);
+		for (int u = 0; u < ds.numUser; u++) {
+			double rate_err = rating_errors.getEntry(u, i);
+			if (rate_err != 0) {
+				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
+				RealVector personalBrandFeats = params.brandUser.getColumnVector(u);
+				RealVector comboBrandFeat = calComboBrandFeat(personalBrandFeats, u, params);
+				RealVector correctionByUser = comboBrandFeat.mapMultiply(rate_err).mapMultiply(logisDiff);
+				sum = sum.add(correctionByUser);
+			}
+		}
+		itemBrandGrad = itemBrandGrad.add(sum);
+		return itemBrandGrad;
+	}
+
+	private RealVector calComboBrandFeat(RealVector personalBrandFeats, int u, SocBIT_Params params) {
+		
+		RealVector friendFeats = new ArrayRealVector(ds.numBrand);
+		for (int v = 0; v < ds.numUser; v++) {
+			double influenceWeight = ds.edge_weights.getEntry(v, u);
+			if (influenceWeight > 0) {
+				RealVector vFeat = params.brandUser.getColumnVector(v);
+				friendFeats = friendFeats.add(vFeat.mapMultiply(influenceWeight));
+			}
+		}
+		RealVector comboFeat = personalBrandFeats.mapMultiply(hypers.alpha);
+		comboFeat = comboFeat.add(friendFeats.mapMultiply(1 - hypers.alpha));
+		return comboFeat;
 	}
 
 	private double userDecPrefDiff(SocBIT_Params params, int u) {
