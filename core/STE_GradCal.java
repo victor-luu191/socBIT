@@ -54,9 +54,9 @@ public class STE_GradCal extends GradCal {
 			if (rate_err != 0) {
 				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, itemIndex));
 				RealVector userTopicFeats = params.topicUser.getColumnVector(u);
-				RealVector combo_feat = comboTopicFeat(userTopicFeats, u, params);
+				RealVector comboTopicFeat = comboTopicFeat(userTopicFeats, u, params);
 				
-				RealVector correctionByUser = combo_feat.mapMultiply(rate_err).mapMultiply(logisDiff);
+				RealVector correctionByUser = comboTopicFeat.mapMultiply(rate_err).mapMultiply(logisDiff);
 				sum = sum.add(correctionByUser);
 			}
 		}
