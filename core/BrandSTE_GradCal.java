@@ -44,7 +44,26 @@ class BrandSTE_GradCal extends STE_GradCal {
 	
 	@Override
 	RealVector calItemTopicGrad(Params params, int itemIndex) {
-		return super.calItemTopicGrad(params, itemIndex);
+		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
+		RealVector itemTopicGrad = itemTopicFeats.mapMultiply(hypers.topicLambda);
+		
+		RealVector sum = new ArrayRealVector(numTopic);
+		for (int u = 0; u < ds.numUser; u++) {
+			double rate_err = rating_errors.getEntry(u, itemIndex);
+			if (rate_err != 0) {
+				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, itemIndex));
+				RealVector userTopicFeats = params.topicUser.getColumnVector(u);
+				RealVector comboTopicFeat = comboTopicFeat(userTopicFeats, u, params);
+				
+				RealVector correctionByUser = comboTopicFeat.mapMultiply(rate_err).mapMultiply(logisDiff);
+				SocBIT_Params castParams = (SocBIT_Params) params;
+				double decPref = castParams.userDecisionPrefs[u];
+				sum = sum.add(correctionByUser.mapMultiply(decPref));
+			}
+		}
+		
+		itemTopicGrad = itemTopicGrad.add(sum);
+		return itemTopicGrad;
 	}
 	
 	private RealVector calItemBrandGrad(SocBIT_Params params, int i) {
@@ -60,7 +79,9 @@ class BrandSTE_GradCal extends STE_GradCal {
 				RealVector personalBrandFeats = params.brandUser.getColumnVector(u);
 				RealVector comboBrandFeat = calComboBrandFeat(personalBrandFeats, u, params);
 				RealVector correctionByUser = comboBrandFeat.mapMultiply(rate_err).mapMultiply(logisDiff);
-				sum = sum.add(correctionByUser);
+				
+				double decPref = params.userDecisionPrefs[u];
+				sum = sum.add(correctionByUser.mapMultiply(1 - decPref));
 			}
 		}
 		itemBrandGrad = itemBrandGrad.add(sum);
