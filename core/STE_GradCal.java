@@ -11,7 +11,7 @@ public class STE_GradCal extends GradCal {
 
 	// this alpha is redundant (it is already included in hypers), but for later brevity, we allow this redundancy
 	// for the meaning of alpha, see in hypers
-	private double alpha;
+	protected double alpha;
 	protected STE_Cal calculator;
 	
 	public STE_GradCal(Trainer trainer) {
@@ -78,7 +78,7 @@ public class STE_GradCal extends GradCal {
 		return userTopicGrad;
 	}
 	
-	private RealVector compInfluenceePart(int u, Params params) {
+	protected RealVector compInfluenceePart(int u, Params params) {
 		
 		// influencee: those who are influenced by/trust u, thus include u's feat in their rating
 		RealVector influenceePart = new ArrayRealVector(numTopic);	
@@ -99,7 +99,7 @@ public class STE_GradCal extends GradCal {
 		return influenceePart;
 	}
 
-	private RealVector compPersonalPart(int u, Params params) {
+	protected RealVector compPersonalPart(int u, Params params) {
 		
 		RealVector personal_part = new ArrayRealVector(numTopic);
 		for (int i = 0; i < ds.numItem; i++) {
@@ -107,7 +107,7 @@ public class STE_GradCal extends GradCal {
 			if (rating_errors.getEntry(u, i) > 0) {
 				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
 				double oneRatingErr = rating_errors.getEntry(u, i);
-				personal_part = personal_part.add(itemTopicFeats.mapMultiply(oneRatingErr).mapMultiply(logisDiff));
+				personal_part = personal_part.add(itemTopicFeats.mapMultiply(oneRatingErr*logisDiff));
 			}
 		}
 		return personal_part;
