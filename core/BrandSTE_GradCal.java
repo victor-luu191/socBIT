@@ -104,9 +104,62 @@ class BrandSTE_GradCal extends STE_GradCal {
 	}
 
 	private double userDecPrefDiff(SocBIT_Params params, int u) {
+		double userDecisionPref = params.userDecisionPrefs[u];
+		double decisionLambda = hypers.decisionLambda;
+		double decisionPrefDiff = decisionLambda * (userDecisionPref - 0.5);
+		
+		
+		
 		// TODO Auto-generated method stub
-		return 0;
+		double rating_sum = 0;
+		for (int i = 0; i < ds.numItem; i++) {
+			double oneRatingErr = rating_errors.getEntry(u, i);
+			if (oneRatingErr != 0) {
+				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
+				double topicRatingEst = estTopicRating(u, i, params);
+				double brandRatingEst = estBrandRating(u, i, params);
+				double term = oneRatingErr * logisDiff * (topicRatingEst - brandRatingEst);
+				rating_sum += term;
+			}
+		}
+		decisionPrefDiff += rating_sum;
+		return decisionPrefDiff;
 	}
+
+	private double estBrandRating(int u, int i, SocBIT_Params params) {
+		
+		RealVector beta_u = params.brandUser.getColumnVector(u);
+		RealVector beta_i = params.brandItem.getColumnVector(i);
+		double personal = beta_u.dotProduct(beta_i);
+		double social = 0;
+		for (int v = 0; v < ds.numUser; v++) {
+			double influence = ds.edge_weights.getEntry(v, u);
+			if (influence > 0) {
+				RealVector beta_v = params.brandUser.getColumnVector(v);
+				social += influence * beta_v.dotProduct(beta_i);
+			}
+		}
+		
+		return alpha*personal + (1 - alpha)*social;
+	}
+
+	private double estTopicRating(int u, int i, SocBIT_Params params) {
+		
+		RealVector theta_u = params.topicUser.getColumnVector(u);
+		RealVector theta_i = params.topicItem.getColumnVector(i);
+		double personal = theta_u.dotProduct(theta_i);
+		double social = 0;
+		for (int v = 0; v < ds.numUser; v++) {
+			double influence = ds.edge_weights.getEntry(v, u);
+			if (influence > 0) {
+				RealVector theta_v = params.topicUser.getColumnVector(v);
+				social += influence * theta_v.dotProduct(theta_i);
+			}
+		}
+		
+		return alpha*personal + (1 - alpha)*social;
+	}
+	
 
 	@Override
 	RealVector calUserTopicGrad(Params params, int u) {
