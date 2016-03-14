@@ -7,7 +7,8 @@ public class Hypers {
 	public double weightLambda;
 	public double decisionLambda;
 	
-	public double alpha;	// tuning param only for STE, alpha controls how much a user believe in his own ratings vs. friend's ratings 
+	public double alpha;	// tuning param only for STE and brandSTE
+							// alpha controls how much a user believe in his own ratings vs. friend's ratings
 	
 	public Hypers(double topicLambda, double alpha) {
 		this.topicLambda = topicLambda;
@@ -33,7 +34,6 @@ public class Hypers {
 	public static Hypers assignBySTE() {
 		double topicLambda = 10;
 		double alpha = 0.5;
-		// TODO Auto-generated method stub
 		return new Hypers(topicLambda, alpha);
 	}
 
