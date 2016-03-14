@@ -110,13 +110,13 @@ class BrandSTE_GradCal extends STE_GradCal {
 
 	@Override
 	RealVector calUserTopicGrad(Params params, int u) {
-		// TODO Auto-generated method stub
+		
 		RealVector userTopicFeats = params.topicUser.getColumnVector(u);
 		RealVector userTopicGrad = userTopicFeats.mapMultiply(hypers.topicLambda);
 		
 		SocBIT_Params castParams = (SocBIT_Params) params;
-		RealVector personal_part = compPersonalPart(u, castParams);
-		RealVector influenceePart = compInfluenceePart(u, castParams);
+		RealVector personal_part = calTopicPersonalPart(u, castParams);
+		RealVector influenceePart = calTopicInfluenceePart(u, castParams);
 		
 		RealVector sum = personal_part.mapMultiply(alpha).add(influenceePart.mapMultiply(1 - alpha));
 		userTopicGrad = userTopicGrad.add(sum); 
@@ -125,19 +125,91 @@ class BrandSTE_GradCal extends STE_GradCal {
 	
 	private RealVector calUserBrandGrad(SocBIT_Params params, int u) {
 		// TODO Auto-generated method stub
-		return null;
+		RealVector userBrandFeats = params.brandUser.getColumnVector(u);
+		RealVector userBrandGrad = userBrandFeats.mapMultiply(hypers.brandLambda);
+		
+		SocBIT_Params castParams = (SocBIT_Params) params;
+		RealVector personal_part = calBrandPersonalPart(u, castParams);
+		RealVector influenceePart = calBrandInfluenceePart(u, castParams);
+		RealVector sum = personal_part.mapMultiply(alpha).add(influenceePart.mapMultiply(1 - alpha));
+		userBrandGrad = userBrandGrad.add(sum);
+		
+		return userBrandGrad;
 	}
 
 	
-	protected RealVector compPersonalPart(int u, SocBIT_Params params) {
+	private RealVector calBrandInfluenceePart(int u, SocBIT_Params params) {
+		
+		RealVector influenceePart = new ArrayRealVector(ds.numBrand);
+		for (int v = 0; v < ds.numUser; v++) {
+			double influencedLevel = ds.edge_weights.getEntry(u, v);
+			if (influencedLevel > 0) {
+				for (int j = 0; j < ds.numItem; j++) {
+					double oneRatingErr = rating_errors.getEntry(v, j);
+					if (oneRatingErr != 0) {
+						// TODO Auto-generated method stub
+					}
+				}
+			}
+		}
+		
+		return influenceePart;
+	}
+
+	protected RealVector calTopicInfluenceePart(int u, SocBIT_Params params) {
+
+		// influencee: those who are influenced by/trust u, thus include u's feat in their rating
+		RealVector influenceePart = new ArrayRealVector(numTopic);	
+		
+		for (int v = 0; v < ds.numUser; v++) {
+			double influencedLevel = ds.edge_weights.getEntry(u, v);
+			if (influencedLevel > 0) {
+				for (int i = 0; i < ds.numItem; i++) {
+					double oneRatingErr = rating_errors.getEntry(v, i);
+					if (oneRatingErr != 0) {
+						RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
+						double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(v, i));
+						double vDecPref = params.userDecisionPrefs[v];
+						double coef = influencedLevel * oneRatingErr * logisDiff * vDecPref;
+						influenceePart = influenceePart.add(itemTopicFeats.mapMultiply(coef));
+
+					}
+				}
+			}
+		}
+		return influenceePart;
+	}
+	
+	private RealVector calBrandPersonalPart(int u, SocBIT_Params params) {
+		
+		RealVector personal_part = new ArrayRealVector(ds.numBrand);
+		double personalDecPref = params.userDecisionPrefs[u];
+		
+		for (int i = 0; i < ds.numItem; i++) {
+			double oneRatingErr = rating_errors.getEntry(u, i);
+			if (oneRatingErr != 0) {
+				RealVector itemBrandFeats = params.brandItem.getColumnVector(i);
+				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
+				
+				double coef = (1 - personalDecPref) * oneRatingErr * logisDiff;
+				personal_part = personal_part.add(itemBrandFeats.mapMultiply(coef));
+			}
+		}
+		
+		return personal_part;
+	}
+
+	protected RealVector calTopicPersonalPart(int u, SocBIT_Params params) {
 		
 		RealVector personal_part = new ArrayRealVector(numTopic);
+		double personalDecPref = params.userDecisionPrefs[u];
+		
 		for (int i = 0; i < ds.numItem; i++) {
-			RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
-			if (rating_errors.getEntry(u, i) > 0) {
+			double oneRatingErr = rating_errors.getEntry(u, i);
+			if (oneRatingErr != 0) {
+				RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
 				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
-				double oneRatingErr = rating_errors.getEntry(u, i);
-				double personalDecPref = params.userDecisionPrefs[u];
+				
 				double coef = oneRatingErr*logisDiff*personalDecPref;
 				personal_part = personal_part.add(itemTopicFeats.mapMultiply(coef));
 			}
@@ -145,26 +217,5 @@ class BrandSTE_GradCal extends STE_GradCal {
 		return personal_part;
 	}
 	
-	protected RealVector compInfluenceePart(int u, SocBIT_Params params) {
-		
-		// influencee: those who are influenced by/trust u, thus include u's feat in their rating
-		RealVector influenceePart = new ArrayRealVector(numTopic);	
-		for (int v = 0; v < ds.numUser; v++) {
-			double influencedLevel = ds.edge_weights.getEntry(u, v);
-			if (influencedLevel > 0) {
-				for (int i = 0; i < ds.numItem; i++) {
-					double oneRatingErr = rating_errors.getEntry(v, i);
-					if (oneRatingErr > 0) {
-						RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
-						double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(v, i));
-						double vDecPref = params.userDecisionPrefs[v];
-						double coef = influencedLevel * oneRatingErr * logisDiff * vDecPref;
-						influenceePart = influenceePart.add(itemTopicFeats.mapMultiply(coef));
-						
-					}
-				}
-			}
-		}
-		return influenceePart;
-	}
+	
 }

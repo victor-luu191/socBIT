@@ -85,11 +85,11 @@ public class STE_GradCal extends GradCal {
 		for (int v = 0; v < ds.numUser; v++) {
 			double influencedLevel = ds.edge_weights.getEntry(u, v);
 			if (influencedLevel > 0) {
-				for (int i = 0; i < ds.numItem; i++) {
-					double oneRatingErr = rating_errors.getEntry(v, i);
-					if (oneRatingErr > 0) {
-						RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
-						double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(v, i));
+				for (int j = 0; j < ds.numItem; j++) {
+					double oneRatingErr = rating_errors.getEntry(v, j);
+					if (oneRatingErr != 0) {
+						RealVector itemTopicFeats = params.topicItem.getColumnVector(j);
+						double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(v, j));
 						double weight = influencedLevel * oneRatingErr * logisDiff;
 						influenceePart = influenceePart.add(itemTopicFeats.mapMultiply(weight));
 					}
@@ -104,9 +104,10 @@ public class STE_GradCal extends GradCal {
 		RealVector personal_part = new ArrayRealVector(numTopic);
 		for (int i = 0; i < ds.numItem; i++) {
 			RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
-			if (rating_errors.getEntry(u, i) > 0) {
+			double oneRatingErr = rating_errors.getEntry(u, i);
+			if (oneRatingErr != 0) {
 				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
-				double oneRatingErr = rating_errors.getEntry(u, i);
+				
 				personal_part = personal_part.add(itemTopicFeats.mapMultiply(oneRatingErr*logisDiff));
 			}
 		}
