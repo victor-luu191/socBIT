@@ -2,8 +2,6 @@ package defs;
 
 import java.util.Optional;
 
-import core.Params;
-
 public class Result {
 	
 	public Params learnedParams;
