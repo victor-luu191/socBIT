@@ -25,8 +25,8 @@ class BrandSTE_Cal extends STE_Cal {
 	}
 
 	@Override
-	RealMatrix estRatings(Params params) {
-		return super.estRatings(params);
+	void estRatings(Params params) {
+		super.estRatings(params);
 	}
 
 	@Override

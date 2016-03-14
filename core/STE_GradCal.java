@@ -3,7 +3,6 @@ package core;
 import helpers.UtilFuncs;
 
 import org.apache.commons.math3.linear.ArrayRealVector;
-import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
 import defs.Params;
@@ -13,7 +12,8 @@ public class STE_GradCal extends GradCal {
 	// this alpha is redundant (it is already included in hypers), but for later brevity, we allow this redundancy
 	// for the meaning of alpha, see in hypers
 	private double alpha;
-	private STE_Cal calculator;
+	protected STE_Cal calculator;
+	
 	public STE_GradCal(Trainer trainer) {
 		
 		numTopic = trainer.numTopic;
@@ -26,30 +26,24 @@ public class STE_GradCal extends GradCal {
 	@Override
 	Params calculate(Params params) {
 		
-		calRatingErrors(params);
+		calculator.estRatings(params);	// for each set of params, need to re-estimate ratings
+		calculator.calRatingErrors(params);
 		
 		Params grad = new Params(ds.numUser, ds.numItem, numTopic);
 		// gradients for users
 		for (int u = 0; u < ds.numUser; u++) {
-			RealVector userTopicGrad = userTopicGrad(params, u);
+			RealVector userTopicGrad = calUserTopicGrad(params, u);
 			grad.topicUser.setColumnVector(u, userTopicGrad);
 		}
-		
 		// gradients for items
 		for (int i = 0; i < ds.numItem; i++) {
-			grad.topicItem.setColumnVector(i, itemTopicGrad(params, i));
+			grad.topicItem.setColumnVector(i, calItemTopicGrad(params, i));
 		}
 		return grad;
 	}
-
-	private void calRatingErrors(Params params) {
-		estimated_ratings = calculator.estRatings(params);
-		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
-		rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
-	}
 	
 	@Override
-	RealVector itemTopicGrad(Params params, int itemIndex) {
+	RealVector calItemTopicGrad(Params params, int itemIndex) {
 		
 		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
 		RealVector itemTopicGrad = itemTopicFeats.mapMultiply(hypers.topicLambda);
@@ -60,7 +54,7 @@ public class STE_GradCal extends GradCal {
 			if (rate_err != 0) {
 				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, itemIndex));
 				RealVector userTopicFeats = params.topicUser.getColumnVector(u);
-				RealVector combo_feat = comboFeat(userTopicFeats, u, params);
+				RealVector combo_feat = comboTopicFeat(userTopicFeats, u, params);
 				
 				RealVector correctionByUser = combo_feat.mapMultiply(rate_err).mapMultiply(logisDiff);
 				sum = sum.add(correctionByUser);
@@ -71,7 +65,7 @@ public class STE_GradCal extends GradCal {
 		return itemTopicGrad;
 	}
 
-	RealVector userTopicGrad(Params params, int u) {
+	RealVector calUserTopicGrad(Params params, int u) {
 		
 		RealVector userTopicFeats = params.topicUser.getColumnVector(u);
 		RealVector userTopicGrad = userTopicFeats.mapMultiply(hypers.topicLambda);
@@ -119,7 +113,7 @@ public class STE_GradCal extends GradCal {
 		return personal_part;
 	}
 
-	private RealVector comboFeat(RealVector userTopicFeats, int u, Params params) {
+	private RealVector comboTopicFeat(RealVector userTopicFeats, int u, Params params) {
 		
 		RealVector combo_feat = userTopicFeats.mapMultiply(alpha);
 		RealVector friendFeats = new ArrayRealVector(numTopic);
@@ -133,7 +127,5 @@ public class STE_GradCal extends GradCal {
 		combo_feat = combo_feat.add(friendFeats.mapMultiply(1 - alpha));
 		return combo_feat;
 	}
-
-	
 	
 }

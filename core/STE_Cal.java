@@ -2,7 +2,6 @@ package core;
 
 import helpers.UtilFuncs;
 
-import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
@@ -16,7 +15,7 @@ class STE_Cal extends RecSysCal {
 	Hypers hypers;
 	
 	public STE_Cal(Dataset ds, Hypers hypers) {
-		super();
+		super(ds);
 		this.ds = ds;
 		this.hypers = hypers;
 	}
@@ -38,20 +37,19 @@ class STE_Cal extends RecSysCal {
 		return val;
 	}
 
-	RealMatrix estRatings(Params params) {
-		RealMatrix estimated_ratings = new Array2DRowRealMatrix(ds.numUser, ds.numItem);
+	void estRatings(Params params) {
+		
 		for (int u = 0; u < ds.numUser; u++) {
 			for (int i = 0; i < ds.numItem; i++) {
 				estimated_ratings.setEntry(u, i, estOneRating(u, i, params));
 			}
 		}
-		return estimated_ratings;
 	}
 
 	RealMatrix calRatingErrors(Params params) {
 		
 //		STE_Calculator calculator = new STE_Calculator(params, alpha, ds.edge_weights);
-		RealMatrix estimated_ratings = estRatings(params);
+		
 		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
 		return rating_errors;

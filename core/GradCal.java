@@ -20,9 +20,9 @@ public abstract class GradCal {
 	// model is the trainer's model
 	abstract Params calculate(Params params);
 	
-	abstract RealVector itemTopicGrad(Params params, int itemIndex);	// RealMatrix rating_errors
+	abstract RealVector calItemTopicGrad(Params params, int itemIndex);	// RealMatrix rating_errors
 
-	abstract RealVector userTopicGrad(Params params, int u);	// RealMatrix rating_errors, RealMatrix edge_weight_errors
+	abstract RealVector calUserTopicGrad(Params params, int u);	// RealMatrix rating_errors, RealMatrix edge_weight_errors
 	
 	/**
 	 * NAs in {@link mat} are marked by some invalid value i.e. null, 

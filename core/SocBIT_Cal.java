@@ -16,6 +16,7 @@ class SocBIT_Cal extends RecSysCal {
 	private RealMatrix idMat;
 
 	public SocBIT_Cal(Dataset ds, Hypers hypers) {
+		super(ds);
 		this.ds = ds;
 		this.hypers = hypers;
 		idMat = MatrixUtils.createRealIdentityMatrix(ds.numUser);
@@ -38,14 +39,13 @@ class SocBIT_Cal extends RecSysCal {
 		return val;
 	}
 	
-	RealMatrix estRatings(Params params) {
+	void estRatings(Params params) {
 		
 		SocBIT_Params castParams = (SocBIT_Params) params;
 		DiagonalMatrix decisionPrefs = new DiagonalMatrix(castParams.userDecisionPrefs);
 		RealMatrix topicRatings = decisionPrefs.multiply(castParams.topicUser.transpose()).multiply(castParams.topicItem);
 		RealMatrix brandRatings = idMat.subtract(decisionPrefs).multiply(castParams.brandUser.transpose()).multiply(castParams.brandItem);
-		RealMatrix est_ratings =  topicRatings.add(brandRatings); 
-		return est_ratings;
+		estimated_ratings =  topicRatings.add(brandRatings); 
 	}
 	
 	RealMatrix estWeights(SocBIT_Params params) {
@@ -58,7 +58,6 @@ class SocBIT_Cal extends RecSysCal {
 	}
 
 	RealMatrix calRatingErrors(Params params) {
-		RealMatrix estimated_ratings = estRatings(params);
 		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
 		return rating_errors;
