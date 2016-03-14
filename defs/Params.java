@@ -1,4 +1,4 @@
-package core;
+package defs;
 
 import helpers.UtilFuncs;
 
@@ -51,7 +51,7 @@ public class Params {
 		}
 	}
 
-	protected void createFeatsUniformly() {
+	public void createFeatsUniformly() {
 		int numTopic = topicItem.getRowDimension();
 		RealVector uniformVector = uniformVector(numTopic);
 
@@ -82,7 +82,7 @@ public class Params {
 		return unitVector;
 	}
 
-	double topicDiff(Params other) {
+	public double topicDiff(Params other) {
 		
 		double topicDiff = 0;
 		RealMatrix userTopicDiff = this.topicUser.subtract(other.topicUser);

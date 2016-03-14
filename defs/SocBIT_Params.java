@@ -1,4 +1,4 @@
-package core;
+package defs;
 
 import helpers.UtilFuncs;
 
@@ -76,7 +76,7 @@ public class SocBIT_Params extends Params {
 		}
 	}
 
-	double sqDiff(SocBIT_Params other) {
+	public double sqDiff(SocBIT_Params other) {
 		double topicDiff = this.topicDiff(other);
 		double brandDiff = this.brandDiff(other);
 		double decisionDiff = this.decisionDiff(other);
