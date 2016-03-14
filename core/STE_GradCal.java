@@ -6,6 +6,8 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
+import defs.Params;
+
 public class STE_GradCal extends GradCal {
 
 	// this alpha is redundant (it is already included in hypers), but for later brevity, we allow this redundancy

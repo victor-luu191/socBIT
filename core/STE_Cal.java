@@ -8,6 +8,7 @@ import org.apache.commons.math3.linear.RealVector;
 
 import defs.Dataset;
 import defs.Hypers;
+import defs.Params;
 
 class STE_Cal extends RecSysCal {
 	
@@ -32,6 +33,25 @@ class STE_Cal extends RecSysCal {
 		val += UtilFuncs.square(rating_errors.getFrobeniusNorm());
 		return val;
 	}
+
+	RealMatrix estRatings(Params params) {
+		RealMatrix estimated_ratings = new Array2DRowRealMatrix(ds.numUser, ds.numItem);
+		for (int u = 0; u < ds.numUser; u++) {
+			for (int i = 0; i < ds.numItem; i++) {
+				estimated_ratings.setEntry(u, i, estOneRating(u, i, params));
+			}
+		}
+		return estimated_ratings;
+	}
+
+	RealMatrix calRatingErrors(Params params) {
+		
+//		STE_Calculator calculator = new STE_Calculator(params, alpha, ds.edge_weights);
+		RealMatrix estimated_ratings = estRatings(params);
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
+		return rating_errors;
+	}
 	
 	/**
 	 * Estimated rating r_{u,i} by STE (social trust ensemble) model in Hao Ma paper: Learning to Recommend with Social Trust Ensemble
@@ -52,24 +72,5 @@ class STE_Cal extends RecSysCal {
 			neighbor_rating += ds.edge_weights.getEntry(v, u) * v_topicFeat.dotProduct(itemTopicFeat);
 		}
 		return hypers.alpha*personal_rating + (1 - hypers.alpha)*neighbor_rating;
-	}
-
-	RealMatrix estRatings(Params params) {
-		RealMatrix estimated_ratings = new Array2DRowRealMatrix(ds.numUser, ds.numItem);
-		for (int u = 0; u < ds.numUser; u++) {
-			for (int i = 0; i < ds.numItem; i++) {
-				estimated_ratings.setEntry(u, i, estOneRating(u, i, params));
-			}
-		}
-		return estimated_ratings;
-	}
-
-	RealMatrix calRatingErrors(Params params) {
-		
-//		STE_Calculator calculator = new STE_Calculator(params, alpha, ds.edge_weights);
-		RealMatrix estimated_ratings = estRatings(params);
-		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
-		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
-		return rating_errors;
 	}
 }

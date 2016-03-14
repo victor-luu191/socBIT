@@ -20,17 +20,14 @@ import defs.Hypers;
 import defs.InvalidModelException;
 import defs.NonConvergeException;
 import defs.ParamModelMismatchException;
+import defs.Params;
 import defs.Result;
+import defs.SocBIT_Params;
 
 public class Experiment {
 	
 	static Dataset train_ds;
 	static Dataset test_ds;
-	
-	public Experiment() {
-		// TODO Auto-generated constructor stub
-		
-	}
 	
 	public static void main(String[] args) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
@@ -145,6 +142,7 @@ public class Experiment {
 	 * @param params
 	 * @param test_ds
 	 */
+	@SuppressWarnings("unused")
 	private static void predict(Params params, Dataset test_ds) {
 		// TODO Auto-generated method stub
 	}

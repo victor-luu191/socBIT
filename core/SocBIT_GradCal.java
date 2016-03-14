@@ -6,6 +6,9 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
+import defs.Params;
+import defs.SocBIT_Params;
+
 public class SocBIT_GradCal extends GradCal {
 
 	private SocBIT_Cal calculator;

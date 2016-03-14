@@ -2,6 +2,8 @@ package core;
 
 import org.apache.commons.math3.linear.RealMatrix;
 
+import defs.Params;
+
 class SoRec_estimator {
 	
 	private Params params;

@@ -5,6 +5,7 @@ import org.apache.commons.math3.linear.RealVector;
 
 import defs.Dataset;
 import defs.Hypers;
+import defs.Params;
 
 public abstract class GradCal {
 	

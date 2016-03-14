@@ -6,6 +6,8 @@ import org.apache.commons.math3.linear.*;
 
 import defs.Dataset;
 import defs.Hypers;
+import defs.Params;
+import defs.SocBIT_Params;
 
 class SocBIT_Cal extends RecSysCal {
 	

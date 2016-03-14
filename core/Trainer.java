@@ -12,7 +12,9 @@ import defs.Hypers;
 import defs.InvalidModelException;
 import defs.NonConvergeException;
 import defs.ParamModelMismatchException;
+import defs.Params;
 import defs.Result;
+import defs.SocBIT_Params;
 
 public class Trainer {
 	
