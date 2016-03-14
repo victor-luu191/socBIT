@@ -2,10 +2,10 @@ package helpers;
 
 import org.apache.commons.math3.linear.RealVector;
 
-import core.Params;
-import core.SocBIT_Params;
 import defs.InvalidModelException;
 import defs.ParamModelMismatchException;
+import defs.Params;
+import defs.SocBIT_Params;
 
 public class ParamUpdater {
 	

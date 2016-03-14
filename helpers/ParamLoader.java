@@ -10,8 +10,8 @@ import java.util.List;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 
-import core.Params;
-import core.SocBIT_Params;
+import defs.Params;
+import defs.SocBIT_Params;
 
 public class ParamLoader {
 	

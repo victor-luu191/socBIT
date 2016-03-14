@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import myUtil.Savers;
-import core.Params;
-import core.SocBIT_Params;
+import defs.Params;
+import defs.SocBIT_Params;
 
 public class ParamSaver {
 	
