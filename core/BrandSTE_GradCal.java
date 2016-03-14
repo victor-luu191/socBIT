@@ -124,7 +124,7 @@ class BrandSTE_GradCal extends STE_GradCal {
 	}
 	
 	private RealVector calUserBrandGrad(SocBIT_Params params, int u) {
-		// TODO Auto-generated method stub
+		
 		RealVector userBrandFeats = params.brandUser.getColumnVector(u);
 		RealVector userBrandGrad = userBrandFeats.mapMultiply(hypers.brandLambda);
 		
@@ -136,7 +136,6 @@ class BrandSTE_GradCal extends STE_GradCal {
 		
 		return userBrandGrad;
 	}
-
 	
 	private RealVector calBrandInfluenceePart(int u, SocBIT_Params params) {
 		
@@ -147,7 +146,11 @@ class BrandSTE_GradCal extends STE_GradCal {
 				for (int j = 0; j < ds.numItem; j++) {
 					double oneRatingErr = rating_errors.getEntry(v, j);
 					if (oneRatingErr != 0) {
-						// TODO Auto-generated method stub
+						RealVector itemBrandFeats = params.brandItem.getColumnVector(j);
+						double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(v, j));
+						double vDecPref = params.userDecisionPrefs[v];
+						double coef = influencedLevel * oneRatingErr * logisDiff * (1 - vDecPref);
+						influenceePart = influenceePart.add(itemBrandFeats.mapMultiply(coef));
 					}
 				}
 			}
@@ -164,11 +167,11 @@ class BrandSTE_GradCal extends STE_GradCal {
 		for (int v = 0; v < ds.numUser; v++) {
 			double influencedLevel = ds.edge_weights.getEntry(u, v);
 			if (influencedLevel > 0) {
-				for (int i = 0; i < ds.numItem; i++) {
-					double oneRatingErr = rating_errors.getEntry(v, i);
+				for (int j = 0; j < ds.numItem; j++) {
+					double oneRatingErr = rating_errors.getEntry(v, j);
 					if (oneRatingErr != 0) {
-						RealVector itemTopicFeats = params.topicItem.getColumnVector(i);
-						double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(v, i));
+						RealVector itemTopicFeats = params.topicItem.getColumnVector(j);
+						double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(v, j));
 						double vDecPref = params.userDecisionPrefs[v];
 						double coef = influencedLevel * oneRatingErr * logisDiff * vDecPref;
 						influenceePart = influenceePart.add(itemTopicFeats.mapMultiply(coef));
