@@ -24,7 +24,7 @@ class STE_Cal extends RecSysCal {
 	double objValue(Params params) {
 		
 //		System.out.println("calculating value of objective function ...");
-		
+		estimated_ratings = estRatings(params);
 		RealMatrix rating_errors = calRatingErrors(params);
 		double sqErr = UtilFuncs.square(rating_errors.getFrobeniusNorm());
 		return sqErr + regularization(params) ;
