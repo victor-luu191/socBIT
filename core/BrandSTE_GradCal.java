@@ -21,8 +21,8 @@ class BrandSTE_GradCal extends STE_GradCal {
 		
 		SocBIT_Params grad = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, numTopic);
 		SocBIT_Params castParams = (SocBIT_Params) params;
-		calculator.estRatings(params);
-		calculator.calRatingErrors(params);
+		estimated_ratings = calculator.estRatings(params);
+		rating_errors = calculator.calRatingErrors(params);
 		
 		// gradients for user feats
 		for (int u = 0; u < ds.numUser; u++) {

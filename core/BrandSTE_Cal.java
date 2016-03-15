@@ -2,7 +2,6 @@ package core;
 
 import helpers.UtilFuncs;
 
-import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
 import defs.Dataset;
@@ -12,61 +11,47 @@ import defs.SocBIT_Params;
 
 class BrandSTE_Cal extends STE_Cal {
 	
-	Dataset ds; 
-	Hypers hypers;
-	
 	public BrandSTE_Cal(Dataset ds, Hypers hypers) {
 		super(ds, hypers);
-	}
-
-	@Override
-	double objValue(Params params) {
-		return super.objValue(params);
-	}
-
-	@Override
-	void estRatings(Params params) {
-		super.estRatings(params);
-	}
-
-	@Override
-	RealMatrix calRatingErrors(Params params) {
-		return super.calRatingErrors(params);
 	}
 	
 	@Override
 	double regularization(Params params) {
 		
 		double topicPart = super.regularization(params);
-		double brandPart = regBrandFeats(params);
-		double decPart = regDecPref(params);
+		double brandPart = 0;
+		double decPart = 0;
+		if (params instanceof SocBIT_Params) {
+			SocBIT_Params castParams = (SocBIT_Params) params;
+			brandPart = regBrandFeats(castParams);
+			decPart = regDecPref(castParams);
+		}
 		return topicPart + brandPart + decPart;
 	}
 
-	private double regDecPref(Params params) {
+	private double regDecPref(SocBIT_Params params) {
 		
-		SocBIT_Params castParams = (SocBIT_Params) params;
+//		SocBIT_Params castParams = (SocBIT_Params) params;
 		double sum = 0;
 		for (int u = 0; u < ds.numUser; u++) {
-			double decPref = castParams.userDecisionPrefs[u];
+			double decPref = params.userDecisionPrefs[u];
 			sum += UtilFuncs.square(decPref - 0.5);
 		}
 		return hypers.decisionLambda * sum;
 	}
 
-	private double regBrandFeats(Params params) {
-		SocBIT_Params castParams = (SocBIT_Params) params;
-		double userBrandFeatNorm = castParams.brandUser.getFrobeniusNorm();
-		double itemBrandFeatNorm = castParams.brandItem.getFrobeniusNorm();
+	private double regBrandFeats(SocBIT_Params params) {
+		double userBrandFeatNorm = params.brandUser.getFrobeniusNorm();
+		double itemBrandFeatNorm = params.brandItem.getFrobeniusNorm();
 		double brandPart = hypers.brandLambda * (UtilFuncs.square(userBrandFeatNorm) + UtilFuncs.square(itemBrandFeatNorm));
 		return brandPart;
 	}
 	
 	@Override
 	double estOneRating(int u, int i, Params params) {
+		double topicRating = super.estOneRating(u, i, params);
 		
 		SocBIT_Params castParams = (SocBIT_Params) params;
-		double topicRating = super.estOneRating(u, i, params);
 		double decPref = castParams.userDecisionPrefs[u];
 		double brandRating = calBrandRating(u,i, castParams);
 		

@@ -21,7 +21,7 @@ public class ParamUpdater {
 	private static Params updateItemComponents(Params cParams, Params cGrad, double stepSize, String model) {
 		
 		Params nParams = new Params(cParams);
-		if (model.equalsIgnoreCase("socBIT")) {//cParams instanceof SocBIT_Params && nParams instanceof SocBIT_Params
+		if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("bSTE")) {//cParams instanceof SocBIT_Params && nParams instanceof SocBIT_Params
 			nParams = updateItemParamsBySocBIT( (SocBIT_Params) cParams, (SocBIT_Params) cGrad, stepSize);
 		} 
 		else {
@@ -35,7 +35,7 @@ public class ParamUpdater {
 	private static Params updateUserComponents(Params cParams,  Params cGrad, double stepSize, String model) {
 		
 		Params nParams = new Params(cParams);
-		if (model.equalsIgnoreCase("socBIT")) {
+		if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("bSTE")) {
 			nParams = updateUserParamsBySocBIT((SocBIT_Params) cParams,  (SocBIT_Params) cGrad, stepSize);
 		} 
 		else {
