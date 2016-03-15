@@ -143,7 +143,7 @@ public class Trainer {
 	}
 	
 	private GradCal buildGradCal(String model) {
-		// TODO Auto-generated method stub
+		
 		GradCal gradCal = null;
 		if (model.equalsIgnoreCase("socBIT")) {
 			gradCal = new SocBIT_GradCal(this);
@@ -151,20 +151,31 @@ public class Trainer {
 		if (model.equalsIgnoreCase("STE")) {
 			gradCal = new STE_GradCal(this);
 		}
-		
+		if (model.equalsIgnoreCase("bSTE")) {
+			gradCal = new BrandSTE_GradCal(this);
+		}
 		return gradCal;
 	}
 
 	private RecSysCal buildCalculator(String model) throws InvalidModelException {
 		
-		if (model.equalsIgnoreCase("socBIT")) {
-			return new SocBIT_Cal(ds, hypers);
-		} else {
+		if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("STE") || model.equalsIgnoreCase("bSTE")) {
+			if (model.equalsIgnoreCase("socBIT")) {
+				calculator = new SocBIT_Cal(ds, hypers);
+			} 
+			
 			if (model.equalsIgnoreCase("STE")) {
-				return new STE_Cal(ds, hypers);
-			} else {
-				throw new InvalidModelException();
+				calculator = new STE_Cal(ds, hypers);
 			}
+			
+			if (model.equalsIgnoreCase("bSTE")) {
+				calculator = new BrandSTE_Cal(ds, hypers);
+			}
+			return calculator;
+		}
+		
+		else {
+			throw new InvalidModelException();
 		}
 	}
 
@@ -174,7 +185,7 @@ public class Trainer {
 			return params;
 		} 
 		else {
-			if (model.equalsIgnoreCase("socBIT")) {
+			if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("bSTE")) {
 				if (params instanceof SocBIT_Params) {
 					return  (SocBIT_Params) params;	// new SocBIT_Params((SocBIT_Params) params)
 				} 
@@ -192,7 +203,7 @@ public class Trainer {
 	// wrapper for computing squared difference bw two parameters where the computation depends on specific model
 	private double sqDiff(Params p1, Params p2) throws InvalidModelException {
 
-		if (model.equalsIgnoreCase("socBIT")) {
+		if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("bSTE")) {
 			SocBIT_Params cast_p1 = (SocBIT_Params) p1;
 			SocBIT_Params cast_p2 = (SocBIT_Params) p2;
 			return cast_p1.sqDiff(cast_p2);

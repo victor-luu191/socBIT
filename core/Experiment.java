@@ -42,21 +42,24 @@ public class Experiment {
 		double train_ratio = 0.8;
 		split(ds, train_ratio);
 		
-		
 		String gtParamDir = dataDir + "true_params/";
 		Params gt_params = ParamLoader.load(gtParamDir);
 		
 		String resDir = "result/syn/N" + ds.numUser + "/";
 		String errDir = resDir + "errors/"; 		mkDir(errDir);
 		
-		
 		String allErrStr = "model, numTopic, ratingErr, edgeWeightErr, obj_value" + "\n";
 		
 		int minK = 1; int maxK = 10;
 //		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
+			
+			Result bSTE_res = trainByBSTE(ds, numTopic);
+			allErrStr += "bSTE, " + numTopic + "," + bSTE_res.toErrString() + "\n";
+			
 			Result socBIT_result = trainBySocBIT(ds, numTopic);
 			Result ste_result = trainBySTE(ds, numTopic);
+			
 			allErrStr += "socBIT, " + numTopic + "," + socBIT_result.toErrString() + "\n";
 			allErrStr += "STE, " + numTopic + "," + ste_result.toErrString() + "\n";
 			
@@ -81,6 +84,17 @@ public class Experiment {
 //		predict(socBIT_params, test_ds);
 	}
 	
+	private static Result trainByBSTE(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
+		
+		System.out.println("Training by bSTE model...");
+		Trainer trainer = initTrainer("bSTE", ds, numTopic);
+		
+		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
+		Result result = trainer.gradDescent(initParams);
+		return result;
+	}
+	
+
 	/**
 	 * split full ds into {@link training_ds} and {@link test_set}, with {@link training_ds} occupy a ratio {@link train_ratio} 
 	 * @param ds
@@ -96,22 +110,34 @@ public class Experiment {
 		int maxIter = 100;
 		
 		Hypers hypers = null;
-		if (model.equalsIgnoreCase("socBIT")) {
-			hypers = Hypers.assignBySocBIT();
-			System.out.println("Try " + numTopic + " topics. Start training...");
-//			printRegConst(hypers);
-		} 
-		else {
+		if (isValid(model)) {
+			if (model.equalsIgnoreCase("socBIT")) {
+				hypers = Hypers.assignBySocBIT();
+				System.out.println("Try " + numTopic + " topics.");
+//				printRegConst(hypers);
+			}
+			
 			if (model.equalsIgnoreCase("STE")) {
 				hypers = Hypers.assignBySTE();
 				System.out.println("Try " + numTopic + " topics.");
-			} else {
-				throw new InvalidModelException();
+			} 
+			
+			if (model.equalsIgnoreCase("bSTE")) {
+				hypers = Hypers.assignByBSTE();
+				System.out.println("Try " + numTopic + " topics.");
 			}
+		}
+		
+		else {
+			throw new InvalidModelException();
 		}
 		
 		Trainer trainer = new Trainer(model, ds, numTopic, hypers, maxIter);
 		return trainer;
+	}
+
+	private static boolean isValid(String model) {
+		return model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("STE") || model.equalsIgnoreCase("bSTE");
 	}
 	
 	private static Result trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
