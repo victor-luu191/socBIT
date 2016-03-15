@@ -28,8 +28,8 @@ public class SocBIT_GradCal extends GradCal {
 		
 		SocBIT_Params castParams = (SocBIT_Params) params;
 		
-		calculator.estRatings(castParams);
-		calculator.calRatingErrors(params);
+		estimated_ratings = calculator.estRatings(castParams);
+		rating_errors = calculator.calRatingErrors(castParams);
 		
 		estimated_weights = calculator.estWeights(castParams);
 		RealMatrix bounded_weights = UtilFuncs.cutoff(estimated_weights);

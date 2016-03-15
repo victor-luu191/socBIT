@@ -26,6 +26,7 @@ class SocBIT_Cal extends RecSysCal {
 	double objValue(Params params) {
 
 		SocBIT_Params castParams = (SocBIT_Params) params;
+		estimated_ratings = estRatings(castParams);
 		RealMatrix rating_errors = calRatingErrors(castParams);
 		RealMatrix edge_weight_errors = calEdgeWeightErrors(castParams);
 
@@ -39,13 +40,15 @@ class SocBIT_Cal extends RecSysCal {
 		return val;
 	}
 	
-	void estRatings(Params params) {
+	@Override
+	RealMatrix estRatings(Params params) {// 
 		
 		SocBIT_Params castParams = (SocBIT_Params) params;
 		DiagonalMatrix decisionPrefs = new DiagonalMatrix(castParams.userDecisionPrefs);
 		RealMatrix topicRatings = decisionPrefs.multiply(castParams.topicUser.transpose()).multiply(castParams.topicItem);
 		RealMatrix brandRatings = idMat.subtract(decisionPrefs).multiply(castParams.brandUser.transpose()).multiply(castParams.brandItem);
-		estimated_ratings =  topicRatings.add(brandRatings); 
+//		this.estimated_ratings =  topicRatings.add(brandRatings); 
+		return topicRatings.add(brandRatings);
 	}
 	
 	RealMatrix estWeights(SocBIT_Params params) {
@@ -58,7 +61,7 @@ class SocBIT_Cal extends RecSysCal {
 	}
 
 	RealMatrix calRatingErrors(Params params) {
-		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(this.estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
 		return rating_errors;
 	}
@@ -74,4 +77,6 @@ class SocBIT_Cal extends RecSysCal {
 	private double sqFrobNorm(RealMatrix matrix) {
 		return UtilFuncs.square(matrix.getFrobeniusNorm());
 	}
+
+	
 }

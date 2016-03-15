@@ -26,8 +26,8 @@ public class STE_GradCal extends GradCal {
 	@Override
 	Params calculate(Params params) {
 		
-		calculator.estRatings(params);	// for each set of params, need to re-estimate ratings
-		calculator.calRatingErrors(params);
+		estimated_ratings = calculator.estRatings(params);	// for each set of params, need to re-estimate ratings
+		rating_errors = calculator.calRatingErrors(params);
 		
 		Params grad = new Params(ds.numUser, ds.numItem, numTopic);
 		// gradients for users

@@ -37,13 +37,14 @@ class STE_Cal extends RecSysCal {
 		return val;
 	}
 
-	void estRatings(Params params) {
+	RealMatrix estRatings(Params params) {
 		
 		for (int u = 0; u < ds.numUser; u++) {
 			for (int i = 0; i < ds.numItem; i++) {
 				estimated_ratings.setEntry(u, i, estOneRating(u, i, params));
 			}
 		}
+		return estimated_ratings;
 	}
 
 	RealMatrix calRatingErrors(Params params) {

@@ -16,7 +16,7 @@ public abstract class RecSysCal {
 	
 	abstract double objValue(Params params);
 	
-	abstract void estRatings(Params params);
+	abstract RealMatrix estRatings(Params params);
 	
 	abstract RealMatrix calRatingErrors(Params params);
 }
