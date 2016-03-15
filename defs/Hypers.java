@@ -23,6 +23,15 @@ public class Hypers {
 		this.decisionLambda = decisionLambda;
 	}
 
+	public Hypers(double topicLambda, double brandLambda, double weightLambda, double decisionLambda, double alpha) {
+		
+		this.topicLambda = topicLambda;
+		this.brandLambda = brandLambda;
+		this.weightLambda = weightLambda;
+		this.decisionLambda = decisionLambda;
+		this.alpha = alpha;
+	}
+
 	public static Hypers setBySocBIT(double topicLambda, double brandLambda, double weightLambda, double decisionLambda) {
 		return new Hypers(topicLambda, brandLambda, weightLambda, decisionLambda);
 	}
@@ -31,6 +40,11 @@ public class Hypers {
 		return new Hypers(topicLambda, alpha);
 	}
 
+	private static Hypers setByBSTE(double topicLambda, double brandLambda, double weightLambda, double decisionLambda, double alpha) {
+		
+		return new Hypers(topicLambda, brandLambda, weightLambda, decisionLambda, alpha);
+	}
+	
 	public static Hypers assignBySTE() {
 		double topicLambda = 10;
 		double alpha = 0.5;
@@ -39,10 +53,22 @@ public class Hypers {
 
 	public static Hypers assignBySocBIT() {
 		double topicLambda = 0.1;
-		double brandLambda = 0.5;
+		double brandLambda = 0.001;
 		double weightLambda = 0.001;
 		double decisionLambda = 0.1;
 		Hypers hypers = setBySocBIT(topicLambda, brandLambda, weightLambda, decisionLambda);
 		return hypers;
 	}
+	
+	public static Hypers assignByBSTE() {
+		double topicLambda = 0.1;
+		double brandLambda = 0.01;
+		double weightLambda = 0.001;
+		double decisionLambda = 0.1;
+		double alpha = 0.5;
+		Hypers hypers = setByBSTE(topicLambda, brandLambda, weightLambda, decisionLambda, alpha);
+		return hypers;
+	}
+
+	
 }
