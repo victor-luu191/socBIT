@@ -5,8 +5,8 @@ import org.apache.commons.math3.linear.RealMatrix;
 
 public class UtilFuncs {
 	
-	private static final double LOWER = -50;
-	private static final double UPPER = 50;
+	private static final double LOWER = -70;
+	private static final double UPPER = 70;
 
 	static double logistic(double x) {
 		return 1/(1 + Math.exp(-x));
