@@ -44,9 +44,7 @@ public class ParamLoader {
 		List<Double> decPrefs = new ArrayList<Double>();
 		String line = reader.readLine();
 		while ((line = reader.readLine()) != null) {
-			String[] fields = line.split(",");
-//			String uid = fields[0];
-			decPrefs.add(Double.parseDouble(fields[1]));
+			decPrefs.add(Double.parseDouble(line));
 		}
 		reader.close();
 		double[] prefs = new double[decPrefs.size()];
@@ -68,12 +66,14 @@ public class ParamLoader {
 		while ((line = reader.readLine()) != null) {
 			numRow ++;
 			String[] fields = line.split(",");
-			int row = Integer.parseInt(fields[0].replace("\"", ""));
-			for (int col = 1; col < fields.length; col++) {
-				matrix.setEntry(row, col, Double.parseDouble(fields[col]));
+			int index = Integer.parseInt(fields[0].replace("\"", ""));
+			int javaRow = index - 1;
+			for (int col = 1; col < fields.length; col++) {// skip the first field as it contains row index
+				int javaCol = col - 1;
+				matrix.setEntry(javaRow, javaCol, Double.parseDouble(fields[col]));
 			}
 		}
-		matrix = matrix.getSubMatrix(1, numRow, 1, numCol);
+		matrix = matrix.getSubMatrix(0, numRow - 1, 0, numCol - 1);
 		reader.close();
 		return matrix;
 	}
