@@ -15,10 +15,42 @@ public class DataLoader {
 	
 	private static int maxNumUser = 2000;
 	private static int maxNumItem = 2000;
+	private static Map<String, Integer> userIndex;
+	private static Map<String, Integer> itemIndex ;
 	
-	public static Dataset load(String dir, int numBrand) throws IOException {
+	private static void loadIndices(String dir) throws IOException {
+		userIndex = loadIndex(dir + "user_index.csv");
+		System.out.println("loaded index of users");
+		itemIndex = loadIndex(dir + "item_index.csv");
+		System.out.println("loaded index of items");
+	}
+	
+	private static Map<String, Integer> loadIndex(String fName) throws IOException {
 		
-		RealMatrix ratings = loadRatings(dir + "ratings.csv");	// train_ratings.csv
+		HashMap<String, Integer> index = new HashMap<String, Integer>();
+		BufferedReader reader = new BufferedReader(new FileReader(fName));
+		String line = reader.readLine();
+		while ((line = reader.readLine()) != null) {
+			String[] fields = line.split(",");
+			String id = fields[0];
+			int ind = toJavaIndex(Integer.parseInt(fields[1]));
+			index.put(id, ind);
+			
+		}
+		reader.close();
+		
+		return index;
+	}
+
+	private static int toJavaIndex(int ind) {
+		return ind - 1;
+	}
+
+	public static Dataset load(String dir, int numBrand, int splitIndex) throws IOException {
+		
+		loadIndices(dir);
+		String rating_file = dir + splitIndex + "_split/" + "train_ratings.csv";
+		RealMatrix ratings = loadRatings(rating_file);	// 
 		RealMatrix edge_weights = loadEdgeWeights(dir + "edge_weights.csv");
 		return new Dataset(ratings, edge_weights, numBrand);
 	}
@@ -27,8 +59,6 @@ public class DataLoader {
 	private static RealMatrix loadEdgeWeights(String fname) throws NumberFormatException, IOException {
 		
 		RealMatrix edge_weights = new Array2DRowRealMatrix(maxNumUser, maxNumUser);
-		Map<String, Integer> userMap = new HashMap<String, Integer>();
-		
 		BufferedReader reader = new BufferedReader(new FileReader(fname));
 		String line = reader.readLine();	// skip header
 		while ((line = reader.readLine()) != null) {
@@ -37,13 +67,13 @@ public class DataLoader {
 			String vid = fields[1];
 			double weight = Double.valueOf(fields[2]);
 			
-			int uIndex = lookUpIndex(uid, userMap);
-			int vIndex = lookUpIndex(vid, userMap);
+			int uIndex = userIndex.get(uid);
+			int vIndex = userIndex.get(vid);
 			edge_weights.setEntry(uIndex, vIndex, weight);
 		}
 		reader.close();
-		int numUser = userMap.size();
-		edge_weights = edge_weights.getSubMatrix(1, numUser, 1, numUser);	// rm redundant rows and cols
+		int numUser = userIndex.size();
+		edge_weights = edge_weights.getSubMatrix(0, numUser - 1, 0, numUser - 1);	// rm redundant rows and cols
 		System.out.println("Loaded all edge weights.");
 
 		return edge_weights;
@@ -51,9 +81,6 @@ public class DataLoader {
 	
 	private static RealMatrix loadRatings(String fname) throws IOException {
 		RealMatrix ratings = new Array2DRowRealMatrix(maxNumUser, maxNumItem);
-		
-		Map<String, Integer> itemMap = new HashMap<String, Integer>();
-		Map<String, Integer> userMap = new HashMap<String, Integer>();
 		
 		BufferedReader reader = new BufferedReader(new FileReader(fname));
 		String line = reader.readLine();	// skip header
@@ -63,16 +90,16 @@ public class DataLoader {
 			String itemId = fields[1];
 			double r = Double.valueOf(fields[2]);
 			
-			int userIndex = lookUpIndex(uid, userMap);
-			int itemIndex = lookUpIndex(itemId, itemMap);
-			ratings.setEntry(userIndex, itemIndex, r);
+			int uIndex = userIndex.get(uid);	// lookUpIndex(uid, userDict);
+			int iIndex = itemIndex.get(itemId);
+			ratings.setEntry(uIndex, iIndex, r);
 		}
 		
 		reader.close();
-		int numUser = userMap.size();
-		int numItem = itemMap.size();
+		int numUser = userIndex.size();
+		int numItem = itemIndex.size();
 		System.out.println("numUser = " + numUser  + ", numItem = " + numItem);
-		ratings = ratings.getSubMatrix(1, numUser, 1, numItem);		// rm redundant rows and cols
+		ratings = ratings.getSubMatrix(0, numUser - 1, 0, numItem - 1);		// rm redundant rows and cols
 		System.out.println("Loaded all ratings.");
 //		System.out.println("First row of ratings: ");
 //		System.out.println(ratings.getRowVector(0).toString());
@@ -88,6 +115,7 @@ public class DataLoader {
 	 * @param size
 	 * @return
 	 */
+	@SuppressWarnings("unused")
 	private static int lookUpIndex(String id, Map<String, Integer> id2Index) {
 		
 		if (id2Index.containsKey(id)) {
