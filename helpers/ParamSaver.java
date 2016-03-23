@@ -20,8 +20,7 @@ public class ParamSaver {
 		}
 	}
 
-	private static void saveBrandComponents(Params params, String dir)
-			throws IOException {
+	private static void saveBrandComponents(Params params, String dir) throws IOException {
 		SocBIT_Params castParams = (SocBIT_Params) params;
 		String userBrandFeat_file = dir + "user_brand_feats.csv";
 		Savers.save(castParams.brandUser.toString(), userBrandFeat_file);
@@ -33,8 +32,7 @@ public class ParamSaver {
 		Savers.save(Arrays.toString(castParams.userDecisionPrefs), decisionPref_file);
 	}
 
-	private static void saveTopicComponents(Params params, String dir)
-			throws IOException {
+	private static void saveTopicComponents(Params params, String dir) throws IOException {
 		String userTopicFeat_file = dir + "user_topic_feats.csv";
 		Savers.save(params.topicUser.toString(), userTopicFeat_file);
 		

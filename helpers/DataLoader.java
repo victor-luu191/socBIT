@@ -18,7 +18,7 @@ public class DataLoader {
 	
 	public static Dataset load(String dir, int numBrand) throws IOException {
 		
-		RealMatrix ratings = loadRatings(dir + "train_ratings.csv");
+		RealMatrix ratings = loadRatings(dir + "ratings.csv");	// train_ratings.csv
 		RealMatrix edge_weights = loadEdgeWeights(dir + "edge_weights.csv");
 		return new Dataset(ratings, edge_weights, numBrand);
 	}

@@ -51,7 +51,6 @@ public class Trainer {
 	 */
 	Result gradDescent(Params initParams) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
-		printStartMsg();
 		int numIter = 0;
 		Params cParams = buildParams(initParams, model);
 		double cValue = calculator.objValue(initParams);
@@ -215,10 +214,6 @@ public class Trainer {
 			}
 		}
 		
-	}
-
-	private void printStartMsg() {
-		System.out.println("iter, obj_value (rating + edge_weight errors + regs), rating errors");
 	}
 
 	private void printConvergeMsg() {

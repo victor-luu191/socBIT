@@ -32,12 +32,12 @@ public class Experiment {
 	public static void main(String[] args) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		// temporary value passing, later will read from file data_stats or itemInfo
-		int numUser = 1000;
+		int numUser = 1000;	// 2000
 		int gt_numTopic = 5;
 		int numBrand = 9*gt_numTopic + 1;	
 
 		// TODO: switch to the pkg org.kohsuke.args4j to enable named args
-		String dataDir = "data/syn/N" + numUser + "/unif/";	// or args[0]
+		String dataDir = "data/syn/N" + numUser + "/unif/";	// 1_split	// or args[0]
 		Dataset ds = DataLoader.load(dataDir, numBrand);
 		double train_ratio = 0.8;
 		split(ds, train_ratio);
@@ -50,8 +50,8 @@ public class Experiment {
 		
 		String allErrStr = "model, numTopic, ratingErr, edgeWeightErr, obj_value" + "\n";
 		
-		int minK = 1; int maxK = 10;
-//		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
+//		int minK = 2; int maxK = 10;
+		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
 			Result bSTE_res = trainByBSTE(ds, numTopic);
@@ -70,9 +70,13 @@ public class Experiment {
 			model = "STE";
 			save(ste_params, model, numTopic, resDir);
 			
+			model = "bSTE";
+			SocBIT_Params bSTE_params = (SocBIT_Params) bSTE_res.learnedParams;
+			save(bSTE_params, model, numTopic, resDir);
+			
 			if (numTopic == gt_numTopic) {
-				String paramErr = getParamErr(socBIT_params, ste_params, gt_params);
-				String fParamErr = errDir + "param_recover.csv" ;
+				String paramErr = getParamErr(socBIT_params, ste_params, bSTE_params, gt_params);
+				String fParamErr = errDir + "param_learn_err.csv" ;
 				Savers.save(paramErr, fParamErr);
 			}
 		}	
@@ -84,18 +88,7 @@ public class Experiment {
 //		predict(socBIT_params, test_ds);
 	}
 	
-	private static Result trainByBSTE(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
-		
-		System.out.println("Training by bSTE model...");
-		Trainer trainer = initTrainer("bSTE", ds, numTopic);
-		
-		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
-		Result result = trainer.gradDescent(initParams);
-		return result;
-	}
-	
-
-	/**
+		/**
 	 * split full ds into {@link training_ds} and {@link test_set}, with {@link training_ds} occupy a ratio {@link train_ratio} 
 	 * @param ds
 	 * @param train_ratio 
@@ -146,6 +139,18 @@ public class Experiment {
 		
 		Trainer trainer = initTrainer("socBIT", ds, numTopic);	// currently training on whole data set, switch to training set later	
 		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
+		System.out.println("iter, obj_value (rating + regs + edge_weight_errors), rating errors");
+		Result result = trainer.gradDescent(initParams);
+		return result;
+	}
+	
+	private static Result trainByBSTE(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
+		
+		System.out.println("Training by bSTE model...");
+		Trainer trainer = initTrainer("bSTE", ds, numTopic);
+		
+		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
+		System.out.println("iter, obj_value (rating + regs), rating errors");
 		Result result = trainer.gradDescent(initParams);
 		return result;
 	}
@@ -157,6 +162,7 @@ public class Experiment {
 		Trainer trainer = initTrainer("STE", ds, numTopic);	// currently training on whole data set, switch to training set later	
 		Params initParams = new Params(ds.numUser, ds.numItem, trainer.numTopic);
 		initParams.createFeatsUniformly();
+		System.out.println("iter, obj_value (rating + regs), rating errors");
 		Result result = trainer.gradDescent(initParams);
 		
 		return result;
@@ -223,12 +229,14 @@ public class Experiment {
 		}
 	}
 
-	private static String getParamErr(SocBIT_Params socBIT_params, Params ste_params, Params gt_params) {
+	private static String getParamErr(SocBIT_Params socBIT_params, Params ste_params, SocBIT_Params bSTE_params, Params gt_params) {
 		
 		String paramErr = "model, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
 		Errors socBIT_errors = compDiff( socBIT_params, (SocBIT_Params) gt_params);
 		Errors ste_errors = compDiff(ste_params, gt_params);
-		paramErr += concat("socBIT",  socBIT_errors) + "\n";	
+		Errors bSTE_errors = compDiff(bSTE_params, (SocBIT_Params) gt_params);
+		paramErr += concat("socBIT",  socBIT_errors) + "\n";
+		paramErr += concat("bSTE", bSTE_errors);
 		paramErr += concat("STE",  ste_errors) + "\n" ;		
 		return paramErr;
 	}
