@@ -52,8 +52,8 @@ public class Hypers {
 	}
 
 	public static Hypers assignBySocBIT() {
-		double topicLambda = 0.1;
-		double brandLambda = 0.001;
+		double topicLambda = 1;
+		double brandLambda = 0.5;
 		double weightLambda = 0.001;
 		double decisionLambda = 0.1;
 		Hypers hypers = setBySocBIT(topicLambda, brandLambda, weightLambda, decisionLambda);
@@ -61,8 +61,8 @@ public class Hypers {
 	}
 	
 	public static Hypers assignByBSTE() {
-		double topicLambda = 0.1;
-		double brandLambda = 0.01;
+		double topicLambda = 1;
+		double brandLambda = 0.5;
 		double weightLambda = 0.001;
 		double decisionLambda = 0.1;
 		double alpha = 0.5;

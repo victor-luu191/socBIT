@@ -18,7 +18,7 @@ public class DataLoader {
 	
 	public static Dataset load(String dir, int numBrand) throws IOException {
 		
-		RealMatrix ratings = loadRatings(dir + "ratings.csv");
+		RealMatrix ratings = loadRatings(dir + "train_ratings.csv");
 		RealMatrix edge_weights = loadEdgeWeights(dir + "edge_weights.csv");
 		return new Dataset(ratings, edge_weights, numBrand);
 	}
@@ -81,7 +81,7 @@ public class DataLoader {
 	}
 
 	/**
-	 * Look up the index corresponding to the given {@link id} if {@link id} can be found in the map {@link id2Index}, 
+	 * Look up the index corresponding to the specified {@link id} if {@link id} can be found in the map {@link id2Index}, 
 	 * Otherwise add the {@link id} to the map and increment the map {@link size} 
 	 * @param id
 	 * @param id2Index
