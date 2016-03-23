@@ -40,9 +40,6 @@ public class Experiment {
 		String dataDir = "data/syn/N" + numUser + "/unif/";	//  or args[0]
 		int splitIndex = 1;
 		Dataset ds = DataLoader.load(dataDir, numBrand, splitIndex);
-		double train_ratio = 0.8;
-		split(ds, train_ratio);
-		
 		String gtParamDir = dataDir + "true_params/";
 		Params gt_params = ParamLoader.load(gtParamDir);
 		
@@ -89,19 +86,9 @@ public class Experiment {
 //		predict(socBIT_params, test_ds);
 	}
 	
-		/**
-	 * split full ds into {@link training_ds} and {@link test_set}, with {@link training_ds} occupy a ratio {@link train_ratio} 
-	 * @param ds
-	 * @param train_ratio 
-	 */
-	private static void split(Dataset ds, double train_ratio) {
-		// TODO Auto-generated method stub
+		private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
 		
-	}
-	
-	private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
-		
-		int maxIter = 100;
+		int maxIter = 10;
 		
 		Hypers hypers = null;
 		if (isValid(model)) {
