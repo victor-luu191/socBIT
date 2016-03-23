@@ -32,13 +32,14 @@ public class Experiment {
 	public static void main(String[] args) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		// temporary value passing, later will read from file data_stats or itemInfo
-		int numUser = 1000;	// 2000
+		int numUser = 2000;	// 
 		int gt_numTopic = 5;
 		int numBrand = 9*gt_numTopic + 1;	
 
 		// TODO: switch to the pkg org.kohsuke.args4j to enable named args
-		String dataDir = "data/syn/N" + numUser + "/unif/";	// 1_split	// or args[0]
-		Dataset ds = DataLoader.load(dataDir, numBrand);
+		String dataDir = "data/syn/N" + numUser + "/unif/";	//  or args[0]
+		int splitIndex = 1;
+		Dataset ds = DataLoader.load(dataDir, numBrand, splitIndex);
 		double train_ratio = 0.8;
 		split(ds, train_ratio);
 		
