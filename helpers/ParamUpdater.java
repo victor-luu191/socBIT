@@ -1,10 +1,12 @@
 package helpers;
 
+import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
 import defs.InvalidModelException;
 import defs.ParamModelMismatchException;
 import defs.Params;
+import defs.SoRecParams;
 import defs.SocBIT_Params;
 
 public class ParamUpdater {
@@ -21,41 +23,58 @@ public class ParamUpdater {
 	private static Params updateItemComponents(Params cParams, Params cGrad, double stepSize, String model) {
 		
 		Params nParams = new Params(cParams);
-		if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("bSTE")) {//cParams instanceof SocBIT_Params && nParams instanceof SocBIT_Params
+		if (model.equalsIgnoreCase("socBIT") ) {//cParams instanceof SocBIT_Params && nParams instanceof SocBIT_Params
 			nParams = updateItemParamsBySocBIT( (SocBIT_Params) cParams, (SocBIT_Params) cGrad, stepSize);
 		} 
-		else {
-			if (model.equalsIgnoreCase("STE")) {
-				nParams = updateItemParamsBySTE(cParams, cGrad, stepSize);
-			}
+		
+		if (model.equalsIgnoreCase("soRec")) {
+			nParams = updateItemParamsBySoRec( (SoRecParams) cParams, (SoRecParams) cGrad, stepSize);
 		}
+//		if (model.equalsIgnoreCase("STE")) {
+//			nParams = updateItemParamsBySTE(cParams, cGrad, stepSize);
+//		}
+		
 		return nParams;
+//		model.equalsIgnoreCase("bSTE")
 	}
 
 	private static Params updateUserComponents(Params cParams,  Params cGrad, double stepSize, String model) {
 		
 		Params nParams = new Params(cParams);
-		if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("bSTE")) {
+		if (model.equalsIgnoreCase("socBIT") ) {// model.equalsIgnoreCase("bSTE")
 			nParams = updateUserParamsBySocBIT((SocBIT_Params) cParams,  (SocBIT_Params) cGrad, stepSize);
 		} 
-		else {
-			if (model.equalsIgnoreCase("STE")) {
-				nParams = updateUserParamsBySTE(cParams,  cGrad, stepSize);
-			}
+		
+		if (model.equalsIgnoreCase("soRec")) {
+			nParams = updateUserParamsBySoRec((SoRecParams) cParams, (SoRecParams) cGrad, stepSize);
 		}
+		
+//		if (model.equalsIgnoreCase("STE")) {
+//			nParams = updateUserParamsBySTE(cParams,  cGrad, stepSize);
+//		}
 		return nParams;
 	}
 	
-	private static Params updateItemParamsBySTE(Params params, Params cGrad, double stepSize) {
+	// the same as basic MF
+	private static Params updateItemParamsBySoRec(SoRecParams cParams, SoRecParams cGrad, double stepSize) {
 		
-		Params nParams = new Params(params);
-		int numItem = params.topicItem.getColumnDimension();
-		for (int i = 0; i < numItem; i++) {
-			RealVector curTopicFeat = params.topicItem.getColumnVector(i);
-			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicItem.setColumnVector(i, nextTopicFeat);
-		}
+		SoRecParams nParams = new SoRecParams(cParams);
+		
+		RealMatrix descent = cGrad.topicItem.scalarMultiply(stepSize);
+		nParams.topicItem = cParams.topicItem.subtract(descent);
+		
+		return nParams;
+	}
+	
+	private static Params updateUserParamsBySoRec(SoRecParams cParams, SoRecParams cGrad, double stepSize) {
+		SoRecParams nParams = new SoRecParams(cParams);
+		
+		RealMatrix topicDescent = cGrad.topicUser.scalarMultiply(stepSize);
+		nParams.topicUser = cParams.topicUser.subtract(topicDescent);
+		
+		RealMatrix zDescent = cGrad.zMatrix.scalarMultiply(stepSize);
+		nParams.zMatrix = cParams.zMatrix.subtract(zDescent);
+		
 		return nParams;
 	}
 
@@ -78,21 +97,7 @@ public class ParamUpdater {
 		}
 		return nParams;
 	}
-
-	private static Params updateUserParamsBySTE(Params cParams,  Params cGrad, double stepSize) {
-		
-		Params nParams = new Params(cParams);
-		int numUser = getNumUser(cParams);
-		for (int u = 0; u < numUser; u++) {
-			
-			RealVector curTopicFeat = cParams.topicUser.getColumnVector(u);
-			RealVector topicDescent = cGrad.topicUser.getColumnVector(u).mapMultiply( -stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicUser.setColumnVector(u, nextTopicFeat);
-		}
-		return nParams;
-	}
-
+	
 	private static SocBIT_Params updateUserParamsBySocBIT(SocBIT_Params cParams,  SocBIT_Params cGrad, double stepSize) {
 		
 		SocBIT_Params nParams = new SocBIT_Params(cParams);
@@ -113,6 +118,37 @@ public class ParamUpdater {
 		}
 		return nParams;
 	}
+	
+	@SuppressWarnings("unused")
+	private static Params updateItemParamsBySTE(Params params, Params cGrad, double stepSize) {
+		
+		Params nParams = new Params(params);
+		int numItem = params.topicItem.getColumnDimension();
+		for (int i = 0; i < numItem; i++) {
+			RealVector curTopicFeat = params.topicItem.getColumnVector(i);
+			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
+			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
+			nParams.topicItem.setColumnVector(i, nextTopicFeat);
+		}
+		return nParams;
+	}
+
+	@SuppressWarnings("unused")
+	private static Params updateUserParamsBySTE(Params cParams,  Params cGrad, double stepSize) {
+		
+		Params nParams = new Params(cParams);
+		int numUser = getNumUser(cParams);
+		for (int u = 0; u < numUser; u++) {
+			
+			RealVector curTopicFeat = cParams.topicUser.getColumnVector(u);
+			RealVector topicDescent = cGrad.topicUser.getColumnVector(u).mapMultiply( -stepSize);
+			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
+			nParams.topicUser.setColumnVector(u, nextTopicFeat);
+		}
+		return nParams;
+	}
+
+	
 
 	@SuppressWarnings("unused")
 	private static Params buildParams(Params cParams, String model) throws ParamModelMismatchException, InvalidModelException {
