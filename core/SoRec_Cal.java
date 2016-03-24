@@ -22,8 +22,15 @@ class SoRec_Cal extends RecSysCal {
 
 	@Override
 	double objValue(Params params) {
-		// TODO Auto-generated method stub
-		return 0;
+		SoRecParams soRecParams = (SoRecParams) params;
+		estimated_ratings = estRatings(soRecParams);
+		RealMatrix ratingErrs = calRatingErrors(soRecParams);
+		RealMatrix edgeWeightErrs = calEdgeWeightErrors(soRecParams);
+		double value = sqFrobNorm(ratingErrs) + hypers.weightLambda * sqFrobNorm(edgeWeightErrs);
+		double regPart = sqFrobNorm(soRecParams.topicUser) + sqFrobNorm(soRecParams.topicItem) + sqFrobNorm(soRecParams.zMatrix);
+		value += hypers.topicLambda * regPart;  
+		
+		return value;
 	}
 
 	@Override
@@ -50,4 +57,9 @@ class SoRec_Cal extends RecSysCal {
 		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);
 		return edge_weight_errors;
 	}
+	
+	private double sqFrobNorm(RealMatrix matrix) {
+		return UtilFuncs.square(matrix.getFrobeniusNorm());
+	}
+
 }
