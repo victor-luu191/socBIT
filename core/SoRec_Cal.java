@@ -1,0 +1,53 @@
+package core;
+
+import helpers.UtilFuncs;
+
+import org.apache.commons.math3.linear.RealMatrix;
+
+import defs.Dataset;
+import defs.Hypers;
+import defs.Params;
+import defs.SoRecParams;
+
+class SoRec_Cal extends RecSysCal {
+	
+	Dataset ds; 
+	Hypers hypers;
+	
+	public SoRec_Cal(Dataset ds, Hypers hypers) {
+		super(ds);
+		this.ds = ds;
+		this.hypers = hypers;
+	}
+
+	@Override
+	double objValue(Params params) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	RealMatrix estRatings(Params params) {
+		RealMatrix estRatings = params.topicUser.transpose().multiply(params.topicItem);
+		return estRatings;
+	}
+
+	@Override
+	RealMatrix calRatingErrors(Params params) {
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(this.estimated_ratings);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
+		return rating_errors;
+	}
+	
+	RealMatrix estWeights(SoRecParams params) {
+		RealMatrix estimated_weights = params.topicUser.transpose().multiply(params.zMatrix);
+		return estimated_weights;
+	}
+	
+	RealMatrix calEdgeWeightErrors(SoRecParams params) {
+		RealMatrix estimated_weights = estWeights(params);
+		RealMatrix bounded_weights = UtilFuncs.cutoff(estimated_weights);
+		RealMatrix edge_weight_errors = ErrorCal.edgeWeightErrors(bounded_weights, ds.edge_weights);
+		return edge_weight_errors;
+	}
+}
