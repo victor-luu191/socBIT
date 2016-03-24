@@ -38,8 +38,24 @@ public class SoRec_GradCal extends GradCal {
 	}
 
 	private RealVector calZGrad(SoRecParams params, int u) {
-		// TODO Auto-generated method stub
-		return null;
+		
+		RealVector zVector = params.zMatrix.getColumnVector(u);
+		RealVector zGrad = zVector.mapMultiply(hypers.topicLambda);
+		
+		RealVector sum = new ArrayRealVector(numTopic);
+		for (int v = 0; v < ds.numUser; v++) {
+			double trustErr = edge_weight_errors.getEntry(v, u);
+			if (trustErr != 0) {
+				RealVector vTopicFeats = params.topicUser.getColumnVector(v);
+				double estTrust = estimated_weights.getEntry(v, u);
+				double logisDiff = UtilFuncs.logisDiff(estTrust);
+				RealVector modifiedFeats = vTopicFeats.mapMultiply(trustErr*logisDiff);
+				sum = sum.add(modifiedFeats);
+			}
+		}
+		
+		zGrad = zGrad.add(sum.mapMultiply(hypers.weightLambda));
+		return zGrad;
 	}
 
 	@Override
