@@ -1,5 +1,6 @@
 package core;
 
+import helpers.Checkers;
 import helpers.ParamUpdater;
 
 import java.io.IOException;
@@ -167,18 +168,23 @@ public class Trainer {
 
 	private RecSysCal buildCalculator(String model) throws InvalidModelException {
 		
-		if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("STE") || model.equalsIgnoreCase("bSTE")) {
+		if (Checkers.isValid(model)) {
 			if (model.equalsIgnoreCase("socBIT")) {
 				calculator = new SocBIT_Cal(ds, hypers);
 			} 
 			
-			if (model.equalsIgnoreCase("STE")) {
-				calculator = new STE_Cal(ds, hypers);
+			if (model.equalsIgnoreCase("soRec")) {
+				calculator = new SoRec_Cal(ds, hypers);
 			}
 			
-			if (model.equalsIgnoreCase("bSTE")) {
-				calculator = new BrandSTE_Cal(ds, hypers);
-			}
+//			if (model.equalsIgnoreCase("STE")) {
+//				calculator = new STE_Cal(ds, hypers);
+//			}
+//			
+//			if (model.equalsIgnoreCase("bSTE")) {
+//				calculator = new BrandSTE_Cal(ds, hypers);
+//			}
+			
 			return calculator;
 		}
 		
