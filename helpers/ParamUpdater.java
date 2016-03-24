@@ -78,43 +78,33 @@ public class ParamUpdater {
 		return nParams;
 	}
 
-	private static SocBIT_Params updateItemParamsBySocBIT(SocBIT_Params params, SocBIT_Params cGrad, double stepSize) {
+	private static SocBIT_Params updateItemParamsBySocBIT(SocBIT_Params cParams, SocBIT_Params cGrad, double stepSize) {
 		
-		SocBIT_Params nParams = new SocBIT_Params(params);
+		SocBIT_Params nParams = new SocBIT_Params(cParams);
 		
-		int numItem = params.topicItem.getColumnDimension();
-		for (int i = 0; i < numItem; i++) {
-			// topic component
-			RealVector curTopicFeat = params.topicItem.getColumnVector(i).copy();
-			RealVector topicDescent = cGrad.topicItem.getColumnVector(i).mapMultiply(-stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicItem.setColumnVector(i, nextTopicFeat);
-			// brand component
-			RealVector curBrandFeat = params.brandItem.getColumnVector(i).copy();
-			RealVector brandDescent = cGrad.brandItem.getColumnVector(i).mapMultiply(-stepSize);
-			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
-			nParams.brandItem.setColumnVector(i, nextBrandFeat);
-		}
+		RealMatrix topicDescent = cGrad.topicItem.scalarMultiply(stepSize);
+		nParams.topicItem = cParams.topicItem.subtract(topicDescent);
+		
+		RealMatrix brandDescent = cGrad.brandItem.scalarMultiply(stepSize);
+		nParams.brandItem = cParams.brandItem.subtract(brandDescent);
+		
 		return nParams;
 	}
 	
 	private static SocBIT_Params updateUserParamsBySocBIT(SocBIT_Params cParams,  SocBIT_Params cGrad, double stepSize) {
 		
 		SocBIT_Params nParams = new SocBIT_Params(cParams);
+		
+		RealMatrix topicDescent = cGrad.topicUser.scalarMultiply(stepSize);
+		nParams.topicUser = cParams.topicUser.subtract(topicDescent);
+		
+		RealMatrix brandDescent = cGrad.brandUser.scalarMultiply(stepSize);
+		nParams.brandUser = cParams.brandUser.subtract(brandDescent);
+		
 		int numUser = cParams.topicUser.getColumnDimension();
 		for (int u = 0; u < numUser; u++) {
 			// user decision pref
 			nParams.userDecisionPrefs[u] = cParams.userDecisionPrefs[u] - stepSize * cGrad.userDecisionPrefs[u];
-			// topic component
-			RealVector curTopicFeat = cParams.topicUser.getColumnVector(u);
-			RealVector topicDescent = cGrad.topicUser.getColumnVector(u).mapMultiply( -stepSize);
-			RealVector nextTopicFeat = curTopicFeat.add(topicDescent);
-			nParams.topicUser.setColumnVector(u, nextTopicFeat);
-			// brand component
-			RealVector curBrandFeat = cParams.brandUser.getColumnVector(u);
-			RealVector brandDescent = cGrad.brandUser.getColumnVector(u).mapMultiply(-stepSize);
-			RealVector nextBrandFeat = curBrandFeat.add(brandDescent);
-			nParams.brandUser.setColumnVector(u, nextBrandFeat);
 		}
 		return nParams;
 	}
