@@ -5,6 +5,7 @@ import java.util.Arrays;
 
 import myUtil.Savers;
 import defs.Params;
+import defs.SoRecParams;
 import defs.SocBIT_Params;
 
 public class ParamSaver {
@@ -16,8 +17,19 @@ public class ParamSaver {
 			saveBrandComponents(params, dir);
 		}
 		else {
-			saveTopicComponents(params, dir);
+			if (params instanceof SoRecParams) {
+				saveTopicComponents(params, dir);
+				saveZComponent(params, dir);
+			} else {
+				saveTopicComponents(params, dir);
+			}
 		}
+	}
+
+	private static void saveZComponent(Params params, String dir) throws IOException {
+		SoRecParams soRecParams = (SoRecParams) params;
+		String zFile = dir + "z_feats.csv";
+		Savers.save(soRecParams.zMatrix.toString(), zFile);
 	}
 
 	private static void saveBrandComponents(Params params, String dir) throws IOException {
