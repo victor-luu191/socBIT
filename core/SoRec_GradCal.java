@@ -25,7 +25,7 @@ public class SoRec_GradCal extends GradCal {
 
 	@Override
 	Params calculate(Params params) {
-		// TODO Auto-generated method stub
+		
 		SoRecParams soRecParams = (SoRecParams) params;
 		estimated_ratings = calculator.estRatings(soRecParams);
 		rating_errors = calculator.calRatingErrors(soRecParams);
@@ -68,7 +68,7 @@ public class SoRec_GradCal extends GradCal {
 
 	@Override
 	RealVector calItemTopicGrad(Params params, int itemIndex) {
-		// TODO Auto-generated method stub
+		
 		double topicLambda = hypers.topicLambda;
 		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
 		RealVector topicGrad = itemTopicFeats.mapMultiply(topicLambda);

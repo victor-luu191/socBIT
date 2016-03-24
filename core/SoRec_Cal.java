@@ -23,7 +23,7 @@ class SoRec_Cal extends RecSysCal {
 	@Override
 	double objValue(Params params) {
 		SoRecParams soRecParams = (SoRecParams) params;
-		estimated_ratings = estRatings(soRecParams);
+		
 		RealMatrix ratingErrs = calRatingErrors(soRecParams);
 		RealMatrix edgeWeightErrs = calEdgeWeightErrors(soRecParams);
 		double value = sqFrobNorm(ratingErrs) + hypers.weightLambda * sqFrobNorm(edgeWeightErrs);
@@ -41,7 +41,8 @@ class SoRec_Cal extends RecSysCal {
 
 	@Override
 	RealMatrix calRatingErrors(Params params) {
-		RealMatrix bounded_ratings = UtilFuncs.cutoff(this.estimated_ratings);
+		RealMatrix estimated_ratings = estRatings(params);
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
 		return rating_errors;
 	}
