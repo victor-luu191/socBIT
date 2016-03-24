@@ -15,7 +15,6 @@ public class SocBIT_GradCal extends GradCal {
 	private RealMatrix estimated_weights;
 	private RealMatrix edge_weight_errors;
 	
-	
 	public SocBIT_GradCal(Trainer trainer) {
 		numTopic = trainer.numTopic;
 		ds = trainer.ds;
@@ -86,7 +85,8 @@ public class SocBIT_GradCal extends GradCal {
 		for (int i = 0; i < ds.numItem; i++) {
 			RealVector curItemTopicFeat = params.topicItem.getColumnVector(i);
 			double ratingLogisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
-			RealVector modified_topicFeat = curItemTopicFeat.mapMultiply(rating_errors.getEntry(u, i)).mapMultiply(ratingLogisDiff);
+			double rError = rating_errors.getEntry(u, i);
+			RealVector modified_topicFeat = curItemTopicFeat.mapMultiply(rError*ratingLogisDiff);
 			rating_sum = rating_sum.add(modified_topicFeat);
 		}
 		
@@ -95,7 +95,8 @@ public class SocBIT_GradCal extends GradCal {
 		for (int v = 0; v < ds.numUser; v++) {
 			RealVector curUserTopicFeat = params.topicUser.getColumnVector(v);
 			double weightLogisDiff = UtilFuncs.logisDiff(estimated_weights.getEntry(u, v));
-			RealVector modified_topicFeat = curUserTopicFeat.mapMultiply(edge_weight_errors.getEntry(u, v)).mapMultiply(weightLogisDiff);
+			double trustErr = edge_weight_errors.getEntry(u, v);
+			RealVector modified_topicFeat = curUserTopicFeat.mapMultiply(trustErr*weightLogisDiff);
 			edge_weight_sum = edge_weight_sum.add(modified_topicFeat);
 
 		}
