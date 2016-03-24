@@ -83,22 +83,25 @@ public class SocBIT_GradCal extends GradCal {
 		// component wrt rating errors
 		RealVector rating_sum = new ArrayRealVector(numTopic);
 		for (int i = 0; i < ds.numItem; i++) {
-			RealVector curItemTopicFeat = params.topicItem.getColumnVector(i);
-			double ratingLogisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
 			double rError = rating_errors.getEntry(u, i);
-			RealVector modified_topicFeat = curItemTopicFeat.mapMultiply(rError*ratingLogisDiff);
-			rating_sum = rating_sum.add(modified_topicFeat);
+			if (rError != 0) {
+				RealVector curItemTopicFeat = params.topicItem.getColumnVector(i);
+				double ratingLogisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
+				RealVector modified_topicFeat = curItemTopicFeat.mapMultiply(rError*ratingLogisDiff);
+				rating_sum = rating_sum.add(modified_topicFeat);
+			}
 		}
 		
 		// component wrt error of edge weight estimation 
 		RealVector edge_weight_sum = new ArrayRealVector(numTopic);
 		for (int v = 0; v < ds.numUser; v++) {
-			RealVector curUserTopicFeat = params.topicUser.getColumnVector(v);
-			double weightLogisDiff = UtilFuncs.logisDiff(estimated_weights.getEntry(u, v));
 			double trustErr = edge_weight_errors.getEntry(u, v);
-			RealVector modified_topicFeat = curUserTopicFeat.mapMultiply(trustErr*weightLogisDiff);
-			edge_weight_sum = edge_weight_sum.add(modified_topicFeat);
-
+			if (trustErr != 0) {
+				RealVector curUserTopicFeat = params.topicUser.getColumnVector(v);
+				double weightLogisDiff = UtilFuncs.logisDiff(estimated_weights.getEntry(u, v));
+				RealVector modified_topicFeat = curUserTopicFeat.mapMultiply(trustErr*weightLogisDiff);
+				edge_weight_sum = edge_weight_sum.add(modified_topicFeat);
+			}
 		}
 
 		double weightLambda = hypers.weightLambda;
