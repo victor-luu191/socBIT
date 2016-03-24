@@ -53,4 +53,9 @@ public class UtilFuncs {
 	public static double square(double d) {
 		return Math.pow(d, 2);
 	}
+
+	public static double sqFrobNorm(RealMatrix matrix) {
+		
+		return square(matrix.getFrobeniusNorm());
+	}
 }
