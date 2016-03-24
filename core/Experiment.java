@@ -1,5 +1,6 @@
 package core;
 
+import helpers.Checkers;
 import helpers.DataLoader;
 import helpers.ParamLoader;
 import helpers.ParamSaver;
@@ -22,6 +23,7 @@ import defs.NonConvergeException;
 import defs.ParamModelMismatchException;
 import defs.Params;
 import defs.Result;
+import defs.SoRecParams;
 import defs.SocBIT_Params;
 
 public class Experiment {
@@ -46,36 +48,30 @@ public class Experiment {
 		String resDir = "result/syn/N" + ds.numUser + "/";
 		String errDir = resDir + "errors/"; 		mkDir(errDir);
 		
-		String allErrStr = "model, numTopic, ratingErr, edgeWeightErr, obj_value" + "\n";
+		String allErrStr = "numTopic, "	+ "ratingErr_soRec, trustErr_soRec, objValue_soRec, "
+										+ "ratingErr_socBIT,  trustErr_socBIT, objValue_socBIT" ;
+		allErrStr += "\n";
 		
 //		int minK = 2; int maxK = 10;
 		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
+			Result soRec_result = trainBySoRec(ds, numTopic);
 			Result socBIT_result = trainBySocBIT(ds, numTopic);
-			Result ste_result = trainBySTE(ds, numTopic);
-			Result bSTE_res = trainByBSTE(ds, numTopic);
+			allErrStr += numTopic + "," + soRec_result.toErrString() + socBIT_result.toErrString() + "\n";
 			
-			allErrStr += "socBIT, " + numTopic + "," + socBIT_result.toErrString() + "\n";
-			allErrStr += "STE, " + numTopic + "," + ste_result.toErrString() + "\n";
-			allErrStr += "bSTE, " + numTopic + "," + bSTE_res.toErrString() + "\n";
+			saveLearnedParams(soRec_result, socBIT_result, numTopic, resDir);
 			
-			SocBIT_Params socBIT_params = (SocBIT_Params) socBIT_result.learnedParams;
-			Params ste_params = ste_result.learnedParams;
-			String model = "socBIT";
-			save(socBIT_params, model, numTopic, resDir);
-			model = "STE";
-			save(ste_params, model, numTopic, resDir);
-			
-			model = "bSTE";
-			SocBIT_Params bSTE_params = (SocBIT_Params) bSTE_res.learnedParams;
-			save(bSTE_params, model, numTopic, resDir);
-			
-			if (numTopic == gt_numTopic) {
-				String paramErr = getParamErr(socBIT_params, ste_params, bSTE_params, gt_params);
-				String fParamErr = errDir + "param_learn_err.csv" ;
-				Savers.save(paramErr, fParamErr);
-			}
+//			Result ste_result = trainBySTE(ds, numTopic);
+//			Result bSTE_res = trainByBSTE(ds, numTopic);
+//			allErrStr += "STE, " + numTopic + "," + ste_result.toErrString() + "\n";
+//			allErrStr += "bSTE, " + numTopic + "," + bSTE_res.toErrString() + "\n";
+//			
+//			if (numTopic == gt_numTopic) {
+//				String paramErr = getParamErr(socBIT_params, ste_params, bSTE_params, gt_params);
+//				String fParamErr = errDir + "param_learn_err.csv" ;
+//				Savers.save(paramErr, fParamErr);
+//			}
 		}	
 		
 		String fErrors = errDir + "all_errors.csv";
@@ -84,28 +80,58 @@ public class Experiment {
 		
 //		predict(socBIT_params, test_ds);
 	}
+
+	private static void saveLearnedParams(Result soRec_result,
+			Result socBIT_result, int numTopic, String resDir)
+			throws IOException {
+		String model = "soRec";
+		SoRecParams soRecParams = (SoRecParams) soRec_result.learnedParams;
+		save(soRecParams, model, numTopic, resDir);
+		
+		model = "socBIT";
+		SocBIT_Params socBIT_params = (SocBIT_Params) socBIT_result.learnedParams;
+		save(socBIT_params, model, numTopic, resDir);
+		
+//			model = "STE";
+//			Params ste_params = ste_result.learnedParams;
+//			save(ste_params, model, numTopic, resDir);
+//			
+//			model = "bSTE";
+//			SocBIT_Params bSTE_params = (SocBIT_Params) bSTE_res.learnedParams;
+//			save(bSTE_params, model, numTopic, resDir);
+	}
 	
-		private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
+	private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
 		
 		int maxIter = 10;
+		double topicLambda = 1;
+		double weightLambda = 0.001;
 		
 		Hypers hypers = null;
-		if (isValid(model)) {
+		if (Checkers.isValid(model)) {
+			
+			if (model.equalsIgnoreCase("soRec")) {
+				hypers = Hypers.setBySoRec(topicLambda, weightLambda);
+				System.out.println("Try " + numTopic + " topics");
+			}
+			
 			if (model.equalsIgnoreCase("socBIT")) {
-				hypers = Hypers.assignBySocBIT();
+				double brandLambda = 0.5;
+				double decisionLambda = 0.1;
+				hypers = Hypers.setBySocBIT(topicLambda, brandLambda, weightLambda, decisionLambda);
 				System.out.println("Try " + numTopic + " topics.");
 //				printRegConst(hypers);
 			}
 			
-			if (model.equalsIgnoreCase("STE")) {
-				hypers = Hypers.assignBySTE();
-				System.out.println("Try " + numTopic + " topics.");
-			} 
-			
-			if (model.equalsIgnoreCase("bSTE")) {
-				hypers = Hypers.assignByBSTE();
-				System.out.println("Try " + numTopic + " topics.");
-			}
+//			if (model.equalsIgnoreCase("STE")) {
+//				hypers = Hypers.assignBySTE();
+//				System.out.println("Try " + numTopic + " topics.");
+//			} 
+//			
+//			if (model.equalsIgnoreCase("bSTE")) {
+//				hypers = Hypers.assignByBSTE();
+//				System.out.println("Try " + numTopic + " topics.");
+//			}
 		}
 		
 		else {
@@ -116,8 +142,14 @@ public class Experiment {
 		return trainer;
 	}
 
-	private static boolean isValid(String model) {
-		return model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("STE") || model.equalsIgnoreCase("bSTE");
+	private static Result trainBySoRec(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
+		
+		System.out.println("Training by soRec model");
+		Trainer trainer = initTrainer("soRec", ds, numTopic);
+		SoRecParams initParams = new SoRecParams(ds.numUser, ds.numItem, numTopic);
+		Result result = trainer.gradDescent(initParams);
+		
+		return result;
 	}
 	
 	private static Result trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
