@@ -17,6 +17,7 @@ import defs.NonConvergeException;
 import defs.ParamModelMismatchException;
 import defs.Params;
 import defs.Result;
+import defs.SoRecParams;
 import defs.SocBIT_Params;
 
 public class Trainer {
@@ -157,12 +158,16 @@ public class Trainer {
 		if (model.equalsIgnoreCase("socBIT")) {
 			gradCal = new SocBIT_GradCal(this);
 		}
-		if (model.equalsIgnoreCase("STE")) {
-			gradCal = new STE_GradCal(this);
+		if (model.equalsIgnoreCase("soRec")) {
+			gradCal = new SoRec_GradCal(this);
 		}
-		if (model.equalsIgnoreCase("bSTE")) {
-			gradCal = new BrandSTE_GradCal(this);
-		}
+		
+//		if (model.equalsIgnoreCase("STE")) {
+//			gradCal = new STE_GradCal(this);
+//		}
+//		if (model.equalsIgnoreCase("bSTE")) {
+//			gradCal = new BrandSTE_GradCal(this);
+//		}
 		return gradCal;
 	}
 
@@ -195,23 +200,31 @@ public class Trainer {
 
 	private Params buildParams(Params params, String model) throws ParamModelMismatchException, InvalidModelException {
 		
-		if (model.equalsIgnoreCase("STE")) {
-			return params;
-		} 
-		else {
-			if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("bSTE")) {
-				if (params instanceof SocBIT_Params) {
-					return  (SocBIT_Params) params;	// new SocBIT_Params((SocBIT_Params) params)
-				} 
-				else {
-					String msg = "Input params type and model mismatch!!!";
-					throw new ParamModelMismatchException(msg);
-				}
-			} 
-			else {
-				throw new InvalidModelException();
+		Params castParams = null;
+		if (Checkers.isValid(model)) {
+			if (model.equalsIgnoreCase("soRec")) {
+				castParams = (SoRecParams) params; 
 			}
+			
+			if (model.equalsIgnoreCase("socBIT") ) {
+				castParams =  (SocBIT_Params) params;
+			}
+			
+			return castParams;
 		}
+		
+		else {
+			throw new InvalidModelException();
+		}
+		
+//		if (params instanceof SocBIT_Params) {
+//		castParams =  (SocBIT_Params) params;	
+//	} 
+//	else {
+//		String msg = "Input params type and model mismatch!!!";
+//		throw new ParamModelMismatchException(msg);
+//	}
+		// model.equalsIgnoreCase("bSTE"), model.equalsIgnoreCase("STE")
 	}
 
 	// wrapper for computing squared difference bw two parameters where the computation depends on specific model

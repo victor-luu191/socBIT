@@ -15,6 +15,14 @@ public class SoRec_GradCal extends GradCal {
 	private RealMatrix estimated_weights;
 	private RealMatrix edge_weight_errors;
 	
+	public SoRec_GradCal(Trainer trainer) {
+		
+		numTopic = trainer.numTopic;
+		ds = trainer.ds;
+		hypers = trainer.hypers;
+		calculator = new SoRec_Cal(ds, hypers);
+	}
+
 	@Override
 	Params calculate(Params params) {
 		// TODO Auto-generated method stub

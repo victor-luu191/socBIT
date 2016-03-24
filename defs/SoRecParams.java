@@ -12,4 +12,9 @@ public class SoRecParams extends Params {
 		zMatrix = new Array2DRowRealMatrix(numTopic, numUser);
 	}
 
+	public SoRecParams(SoRecParams params) {
+		super(params);
+		this.zMatrix = params.zMatrix;
+	}
+
 }
