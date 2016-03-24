@@ -5,6 +5,8 @@ import helpers.ParamUpdater;
 import java.io.IOException;
 import java.util.Optional;
 
+import myUtil.TimeUtil;
+
 import org.apache.commons.math3.linear.RealMatrix;
 
 import defs.Dataset;
@@ -53,7 +55,10 @@ public class Trainer {
 		
 		int numIter = 0;
 		Params cParams = buildParams(initParams, model);
+		long beginObjCal = System.currentTimeMillis();
 		double cValue = calculator.objValue(initParams);
+		double elapsedObjCal = TimeUtil.toSecond(System.currentTimeMillis() - beginObjCal);
+		System.out.println("time needed for a calculation of obj value is " + elapsedObjCal + "s");
 		
 		double ratingError = getRatingError(cParams);
 		
@@ -64,7 +69,11 @@ public class Trainer {
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
+			long beginGradCal = System.currentTimeMillis();
 			Params cGrad = gradCal.calculate(cParams);
+			double elapseGradCal = TimeUtil.toSecond(System.currentTimeMillis() - beginGradCal);
+			System.out.println("time for a gradient calculation: " + elapseGradCal + "s");
+			
 			Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = calculator.objValue(nParams);
 			
