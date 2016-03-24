@@ -2,6 +2,7 @@ package core;
 
 import helpers.Checkers;
 import helpers.ParamUpdater;
+import helpers.UtilFuncs;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -57,13 +58,11 @@ public class Trainer {
 		
 		int numIter = 0;
 		Params cParams = buildParams(initParams, model);
-		long beginObjCal = System.currentTimeMillis();
 		double cValue = calculator.objValue(initParams);
-		double elapsedObjCal = TimeUtil.toSecond(System.currentTimeMillis() - beginObjCal);
-		System.out.println("time needed for a calculation of obj value is " + elapsedObjCal + "s");
 		
 		double ratingError = getRatingError(cParams);
 		
+		System.out.println("iter, objValue, ratingErr");
 		System.out.println(numIter + ", " + cValue + "," + ratingError);
 		double difference = Double.POSITIVE_INFINITY;
 		
@@ -71,10 +70,8 @@ public class Trainer {
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
-//			long beginGradCal = System.currentTimeMillis();
 			Params cGrad = gradCal.calculate(cParams);
-//			double elapseGradCal = TimeUtil.toSecond(System.currentTimeMillis() - beginGradCal);
-//			System.out.println("time for a gradient calculation: " + elapseGradCal + "s");
+
 			
 			Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = calculator.objValue(nParams);
@@ -90,21 +87,39 @@ public class Trainer {
 		
 		if (!isLarge(difference)) {
 			printConvergeMsg();
-			Optional<Double> edgeWeightErr =  Optional.empty();
-			if (model.equalsIgnoreCase("socBIT")) {
-				edgeWeightErr = Optional.of(getEdgeWeightErr(cParams));
-			}
-			return new Result(cParams, ratingError, edgeWeightErr, cValue);
+//			if (model.equalsIgnoreCase("socBIT")) {
+//				edgeWeightErr = Optional.of(getEdgeWeightErr(cParams));
+//			}
+			
 		} 
 		else {
-			throw new NonConvergeException();
+//			throw new NonConvergeException();
+			String msg = "Not converged yet but already exceeded the maximum number of iterations. "
+					+ "Gradient descent stopped!";
+			
+			System.out.println(msg);
 		}
+		
+		Optional<Double> edgeWeightErr =  Optional.empty();
+		edgeWeightErr = Optional.of(getEdgeWeightErr(cParams));
+		return new Result(cParams, ratingError, edgeWeightErr, cValue);
 	}
+	
 
 	private Double getEdgeWeightErr(Params params) {
-		SocBIT_Cal socBIT_Cal = (SocBIT_Cal) calculator;
-		RealMatrix edgeWeightErrors = socBIT_Cal.calEdgeWeightErrors((SocBIT_Params) params);
-		return square(edgeWeightErrors.getFrobeniusNorm());
+		
+		RealMatrix edgeWeightErrors = null;
+		if (params instanceof SocBIT_Params) {
+			SocBIT_Cal castCal = (SocBIT_Cal) calculator;
+			edgeWeightErrors = castCal.calEdgeWeightErrors((SocBIT_Params) params);
+		}
+		
+		if (params instanceof SoRecParams) {
+			SoRec_Cal castCal = (SoRec_Cal) calculator;
+			edgeWeightErrors = castCal.calEdgeWeightErrors((SoRecParams) params);
+		}
+		
+		return UtilFuncs.sqFrobNorm(edgeWeightErrors);
 	}
 
 	private double getRatingError(Params params) {
@@ -229,18 +244,28 @@ public class Trainer {
 
 	// wrapper for computing squared difference bw two parameters where the computation depends on specific model
 	private double sqDiff(Params p1, Params p2) throws InvalidModelException {
-
-		if (model.equalsIgnoreCase("socBIT") || model.equalsIgnoreCase("bSTE")) {
+		
+		double diff = 0;
+		if (model.equalsIgnoreCase("socBIT") ) {// model.equalsIgnoreCase("bSTE")
 			SocBIT_Params cast_p1 = (SocBIT_Params) p1;
 			SocBIT_Params cast_p2 = (SocBIT_Params) p2;
-			return cast_p1.sqDiff(cast_p2);
-		} else {
-			if (model.equalsIgnoreCase("STE")) {
-				return p1.topicDiff(p2);
-			} else {
-				throw new InvalidModelException();
-			}
+			diff = cast_p1.sqDiff(cast_p2);
+		} 
+		
+		if (model.equalsIgnoreCase("soRec")) {
+			SoRecParams soRecParams1 = (SoRecParams) p1;
+			SoRecParams soRecParams2 = (SoRecParams) p2;
+			diff = soRecParams1.sqDiff(soRecParams2);
 		}
+		
+		return diff;
+		
+//		if (model.equalsIgnoreCase("STE")) {
+//			diff = p1.topicDiff(p2);
+//		} else {
+//			throw new InvalidModelException();
+//		}
+		
 		
 	}
 
