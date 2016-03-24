@@ -45,7 +45,22 @@ public class SoRec_GradCal extends GradCal {
 	@Override
 	RealVector calItemTopicGrad(Params params, int itemIndex) {
 		// TODO Auto-generated method stub
-		return null;
+		double topicLambda = hypers.topicLambda;
+		RealVector itemTopicFeats = params.topicItem.getColumnVector(itemIndex);
+		RealVector topicGrad = itemTopicFeats.mapMultiply(topicLambda);
+		
+		RealVector sum = new ArrayRealVector(numTopic);
+		for (int u = 0; u < ds.numUser; u++) {
+			double rating_err = rating_errors.getEntry(u, itemIndex);
+			if (rating_err != 0) {
+				RealVector userTopicFeat = params.topicUser.getColumnVector(u);
+				double logisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, itemIndex));
+				sum = sum.add(userTopicFeat.mapMultiply(rating_err*logisDiff));
+			}
+		}
+		
+		topicGrad = topicGrad.add(sum);
+		return topicGrad;
 	}
 
 	@Override
