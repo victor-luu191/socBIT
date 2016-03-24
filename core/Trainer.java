@@ -71,10 +71,10 @@ public class Trainer {
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
-			long beginGradCal = System.currentTimeMillis();
+//			long beginGradCal = System.currentTimeMillis();
 			Params cGrad = gradCal.calculate(cParams);
-			double elapseGradCal = TimeUtil.toSecond(System.currentTimeMillis() - beginGradCal);
-			System.out.println("time for a gradient calculation: " + elapseGradCal + "s");
+//			double elapseGradCal = TimeUtil.toSecond(System.currentTimeMillis() - beginGradCal);
+//			System.out.println("time for a gradient calculation: " + elapseGradCal + "s");
 			
 			Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = calculator.objValue(nParams);
