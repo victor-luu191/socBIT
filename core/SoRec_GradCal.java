@@ -1,5 +1,8 @@
 package core;
 
+import helpers.UtilFuncs;
+
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
@@ -21,6 +24,21 @@ public class SoRec_GradCal extends GradCal {
 		estimated_weights = calculator.estWeights(soRecParams);
 		edge_weight_errors = calculator.calEdgeWeightErrors(soRecParams);
 		
+		SoRecParams grad = new SoRecParams(ds.numUser, ds.numItem, this.numTopic);
+		for (int i = 0; i < ds.numItem; i++) {
+			grad.topicItem.setColumnVector(i, calItemTopicGrad(params, i));
+		}
+		
+		for (int u = 0; u < ds.numUser; u++) {
+			grad.topicUser.setColumnVector(u, calUserTopicGrad(params, u));
+			grad.zMatrix.setColumnVector(u, calZGrad(soRecParams, u));
+		}
+		
+		return grad;
+	}
+
+	private RealVector calZGrad(SoRecParams params, int u) {
+		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -32,8 +50,35 @@ public class SoRec_GradCal extends GradCal {
 
 	@Override
 	RealVector calUserTopicGrad(Params params, int u) {
-		// TODO Auto-generated method stub
-		return null;
+		
+		RealVector topicFeats = params.topicUser.getColumnVector(u);
+		RealVector userTopicGrad = topicFeats.mapMultiply(hypers.topicLambda);
+		
+		RealVector rating_sum = new ArrayRealVector(numTopic);
+		for (int i = 0; i < ds.numItem; i++) {
+			double rError = rating_errors.getEntry(u, i);
+			if (rError != 0) {
+				RealVector curItemTopicFeat = params.topicItem.getColumnVector(i);
+				double ratingLogisDiff = UtilFuncs.logisDiff(estimated_ratings.getEntry(u, i));
+				RealVector modified_topicFeat = curItemTopicFeat.mapMultiply(rError*ratingLogisDiff);
+				rating_sum = rating_sum.add(modified_topicFeat);
+			}
+		}
+		
+		SoRecParams soRecParams = (SoRecParams) params;
+		RealVector edge_weight_sum = new ArrayRealVector(numTopic);
+		for (int v = 0; v < ds.numUser; v++) {
+			double trustErr = edge_weight_errors.getEntry(u, v);
+			if (trustErr != 0) {
+				RealVector zOfFriend = soRecParams.zMatrix.getColumnVector(v);
+				double weightLogisDiff = UtilFuncs.logisDiff(estimated_weights.getEntry(u, v));
+				RealVector modified_topicFeat = zOfFriend.mapMultiply(trustErr*weightLogisDiff);
+				edge_weight_sum = edge_weight_sum.add(modified_topicFeat);
+			}
+		}
+		
+		userTopicGrad = userTopicGrad.add(rating_sum).add(edge_weight_sum.mapMultiply(hypers.weightLambda));
+		return userTopicGrad;
 	}
 
 }
