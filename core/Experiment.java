@@ -52,14 +52,13 @@ public class Experiment {
 		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
-			Result bSTE_res = trainByBSTE(ds, numTopic);
-			allErrStr += "bSTE, " + numTopic + "," + bSTE_res.toErrString() + "\n";
-			
 			Result socBIT_result = trainBySocBIT(ds, numTopic);
 			Result ste_result = trainBySTE(ds, numTopic);
+			Result bSTE_res = trainByBSTE(ds, numTopic);
 			
 			allErrStr += "socBIT, " + numTopic + "," + socBIT_result.toErrString() + "\n";
 			allErrStr += "STE, " + numTopic + "," + ste_result.toErrString() + "\n";
+			allErrStr += "bSTE, " + numTopic + "," + bSTE_res.toErrString() + "\n";
 			
 			SocBIT_Params socBIT_params = (SocBIT_Params) socBIT_result.learnedParams;
 			Params ste_params = ste_result.learnedParams;
