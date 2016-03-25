@@ -46,10 +46,9 @@ public class DataLoader {
 		return ind - 1;
 	}
 
-	public static Dataset load(String dir, int numBrand, int splitIndex) throws IOException {
+	public static Dataset load(String dir, int numBrand, int splitIndex, String rating_file) throws IOException {
 		
 		loadIndices(dir);
-		String rating_file = dir + splitIndex + "_split/" + "train_ratings.csv";
 		RealMatrix ratings = loadRatings(rating_file);	// 
 		RealMatrix edge_weights = loadEdgeWeights(dir + "edge_weights.csv");
 		return new Dataset(ratings, edge_weights, numBrand);
