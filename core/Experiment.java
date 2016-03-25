@@ -2,6 +2,7 @@ package core;
 
 import helpers.Checkers;
 import helpers.DataLoader;
+import helpers.DirUtils;
 import helpers.ParamLoader;
 import helpers.ParamSaver;
 
@@ -41,37 +42,43 @@ public class Experiment {
 		// TODO: switch to the pkg org.kohsuke.args4j to enable named args
 		String dataDir = "data/syn/N" + numUser + "/unif/";	//  or args[0]
 		int splitIndex = 1;
-		Dataset ds = DataLoader.load(dataDir, numBrand, splitIndex);
+		String train_file = dataDir + splitIndex + "_split/" + "train_ratings.csv";
+		Dataset train_ds = DataLoader.load(dataDir, numBrand, splitIndex, train_file);
+		String test_file = dataDir + splitIndex + "_split/" + "test_ratings.csv";
+		test_ds = DataLoader.load(dataDir, numBrand, splitIndex, test_file);
+		
 		String gtParamDir = dataDir + "true_params/";
 		Params gt_params = ParamLoader.load(gtParamDir);
 		
-		String resDir = "result/syn/N" + ds.numUser + "/";
-		String errDir = resDir + "errors/"; 		mkDir(errDir);
+		String resDir = "result/syn/N" + train_ds.numUser + "/";
+		String errDir = resDir + "errors/"; 		DirUtils.mkDir(errDir);
 		
-		String allErrStr = "numTopic, "	+ "ratingErr_soRec, trustErr_soRec, objValue_soRec, "
-										+ "ratingErr_socBIT,  trustErr_socBIT, objValue_socBIT" ;
-		allErrStr += "\n";
+		String allErrStr = mkTitle4ErrStr();
 		
-//		int minK = 2; int maxK = 10;
-		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
+		int minK = 2; int maxK = 10;
+//		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
-			Result soRec_result = trainBySoRec(ds, numTopic);
-			Result socBIT_result = trainBySocBIT(ds, numTopic);
-			allErrStr += numTopic + "," + soRec_result.toErrString() + socBIT_result.toErrString() + "\n";
+			Result soRec_result = trainBySoRec(train_ds, numTopic);
+			Result socBIT_result = trainBySocBIT(train_ds, numTopic);
+			allErrStr += numTopic + "," + soRec_result.toErrString() + "," + socBIT_result.toErrString() + "\n";
 			
 			saveLearnedParams(soRec_result, socBIT_result, numTopic, resDir);
+
+			if (numTopic == gt_numTopic) {
+				predict(soRec_result.learnedParams, test_ds);
+				predict(socBIT_result.learnedParams, test_ds);
+				
+//				String paramErr = getParamErr(socBIT_params, ste_params, bSTE_params, gt_params);
+//				String fParamErr = errDir + "param_learn_err.csv" ;
+//				Savers.save(paramErr, fParamErr);
+			}
 			
 //			Result ste_result = trainBySTE(ds, numTopic);
 //			Result bSTE_res = trainByBSTE(ds, numTopic);
 //			allErrStr += "STE, " + numTopic + "," + ste_result.toErrString() + "\n";
 //			allErrStr += "bSTE, " + numTopic + "," + bSTE_res.toErrString() + "\n";
 //			
-//			if (numTopic == gt_numTopic) {
-//				String paramErr = getParamErr(socBIT_params, ste_params, bSTE_params, gt_params);
-//				String fParamErr = errDir + "param_learn_err.csv" ;
-//				Savers.save(paramErr, fParamErr);
-//			}
 		}	
 		
 		String fErrors = errDir + "all_errors.csv";
@@ -81,26 +88,6 @@ public class Experiment {
 //		predict(socBIT_params, test_ds);
 	}
 
-	private static void saveLearnedParams(Result soRec_result,
-			Result socBIT_result, int numTopic, String resDir)
-			throws IOException {
-		String model = "soRec";
-		SoRecParams soRecParams = (SoRecParams) soRec_result.learnedParams;
-		save(soRecParams, model, numTopic, resDir);
-		
-		model = "socBIT";
-		SocBIT_Params socBIT_params = (SocBIT_Params) socBIT_result.learnedParams;
-		save(socBIT_params, model, numTopic, resDir);
-		
-//			model = "STE";
-//			Params ste_params = ste_result.learnedParams;
-//			save(ste_params, model, numTopic, resDir);
-//			
-//			model = "bSTE";
-//			SocBIT_Params bSTE_params = (SocBIT_Params) bSTE_res.learnedParams;
-//			save(bSTE_params, model, numTopic, resDir);
-	}
-	
 	private static Trainer initTrainer(String model, Dataset ds, int numTopic) throws InvalidModelException {
 		
 		int maxIter = 10;
@@ -116,8 +103,8 @@ public class Experiment {
 			}
 			
 			if (model.equalsIgnoreCase("socBIT")) {
-				double brandLambda = 0.5;
-				double decisionLambda = 0.1;
+				double brandLambda = 5;
+				double decisionLambda = 2;
 				hypers = Hypers.setBySocBIT(topicLambda, brandLambda, weightLambda, decisionLambda);
 				System.out.println("Try " + numTopic + " topics.");
 //				printRegConst(hypers);
@@ -163,37 +150,12 @@ public class Experiment {
 		return result;
 	}
 	
-	private static Result trainByBSTE(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
-		
-		System.out.println("Training by bSTE model...");
-		Trainer trainer = initTrainer("bSTE", ds, numTopic);
-		
-		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
-		System.out.println("iter, obj_value (rating + regs), rating errors");
-		Result result = trainer.gradDescent(initParams);
-		return result;
-	}
-	
-	private static Result trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
-		
-		System.out.println("Training by STE model...");
-		
-		Trainer trainer = initTrainer("STE", ds, numTopic);	// currently training on whole data set, switch to training set later	
-		Params initParams = new Params(ds.numUser, ds.numItem, trainer.numTopic);
-		initParams.createFeatsUniformly();
-		System.out.println("iter, obj_value (rating + regs), rating errors");
-		Result result = trainer.gradDescent(initParams);
-		
-		return result;
-	}
-	
 	/**
 	 * Make predictions using specified {@link params} and check with ground truth {@link test_ds} to obtain ... 
 	 * evaluation metrics
 	 * @param params
 	 * @param test_ds
 	 */
-	@SuppressWarnings("unused")
 	private static void predict(Params params, Dataset test_ds) {
 		// TODO Auto-generated method stub
 	}
@@ -235,19 +197,67 @@ public class Experiment {
 		return new ArrayRealVector(arr);
 	}
 	
+	private static String mkTitle4ErrStr() {
+		String allErrStr = "numTopic, "	+ "ratingErr_soRec, trustErr_soRec, objValue_soRec, "
+										+ "ratingErr_socBIT,  trustErr_socBIT, objValue_socBIT" ;
+		allErrStr += "\n";
+		return allErrStr;
+	}
+
+	private static void saveLearnedParams(Result soRec_result, Result socBIT_result, int numTopic, String resDir)
+			throws IOException {
+		
+		String model = "soRec";
+		SoRecParams soRecParams = (SoRecParams) soRec_result.learnedParams;
+		save(soRecParams, model, numTopic, resDir);
+		
+		model = "socBIT";
+		SocBIT_Params socBIT_params = (SocBIT_Params) socBIT_result.learnedParams;
+		save(socBIT_params, model, numTopic, resDir);
+		
+//			model = "STE";
+//			Params ste_params = ste_result.learnedParams;
+//			save(ste_params, model, numTopic, resDir);
+//			
+//			model = "bSTE";
+//			SocBIT_Params bSTE_params = (SocBIT_Params) bSTE_res.learnedParams;
+//			save(bSTE_params, model, numTopic, resDir);
+	}
+	
 	private static void save(Params params, String model, int numTopic, String resDir) throws IOException {
 		
 		String name = resDir + model + "/" + "numTopic" + numTopic + "/";
-		mkDir(name);
+		DirUtils.mkDir(name);
 		ParamSaver.save(params, name);
 	}
 
-	private static void mkDir(String name) throws IOException {
-		if (!Files.exists(Paths.get(name))) {
-			Files.createDirectories(Paths.get(name));
-		}
+	@SuppressWarnings("unused")
+	private static Result trainByBSTE(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
+		
+		System.out.println("Training by bSTE model...");
+		Trainer trainer = initTrainer("bSTE", ds, numTopic);
+		
+		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
+		System.out.println("iter, obj_value (rating + regs), rating errors");
+		Result result = trainer.gradDescent(initParams);
+		return result;
 	}
-
+	
+	@SuppressWarnings("unused")
+	private static Result trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
+		
+		System.out.println("Training by STE model...");
+		
+		Trainer trainer = initTrainer("STE", ds, numTopic);	// currently training on whole data set, switch to training set later	
+		Params initParams = new Params(ds.numUser, ds.numItem, trainer.numTopic);
+		initParams.createFeatsUniformly();
+		System.out.println("iter, obj_value (rating + regs), rating errors");
+		Result result = trainer.gradDescent(initParams);
+		
+		return result;
+	}
+	
+	@SuppressWarnings("unused")
 	private static String getParamErr(SocBIT_Params socBIT_params, Params ste_params, SocBIT_Params bSTE_params, Params gt_params) {
 		
 		String paramErr = "model, topicUserErr, topicItemErr, brandUserErr, brandItemErr, decisionPrefErr \n";
