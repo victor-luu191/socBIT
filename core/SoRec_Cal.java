@@ -63,4 +63,11 @@ class SoRec_Cal extends RecSysCal {
 		return UtilFuncs.square(matrix.getFrobeniusNorm());
 	}
 
+	public RealMatrix calRatingErrors(RealMatrix estimated_ratings, RealMatrix ratings) {
+		
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estimated_ratings);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
+		return rating_errors;
+	}
+
 }

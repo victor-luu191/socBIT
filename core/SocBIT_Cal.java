@@ -52,8 +52,17 @@ class SocBIT_Cal extends RecSysCal {
 	}
 
 	RealMatrix calRatingErrors(Params params) {
-		RealMatrix bounded_ratings = UtilFuncs.cutoff(this.estimated_ratings);
+		
+		RealMatrix estRatings = estRatings(params);
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estRatings);
 		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ds.ratings);
+		return rating_errors;
+	}
+	
+	public RealMatrix calRatingErrors(RealMatrix estRatings, RealMatrix ratings) {
+		
+		RealMatrix bounded_ratings = UtilFuncs.cutoff(estRatings);
+		RealMatrix rating_errors = ErrorCal.ratingErrors(bounded_ratings, ratings);
 		return rating_errors;
 	}
 	
@@ -77,6 +86,8 @@ class SocBIT_Cal extends RecSysCal {
 	private double sqFrobNorm(RealMatrix matrix) {
 		return UtilFuncs.square(matrix.getFrobeniusNorm());
 	}
+
+	
 
 	
 }
