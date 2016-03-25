@@ -5,6 +5,7 @@ import helpers.DataLoader;
 import helpers.DirUtils;
 import helpers.ParamLoader;
 import helpers.ParamSaver;
+import helpers.UtilFuncs;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,6 +15,7 @@ import java.util.Optional;
 import myUtil.Savers;
 
 import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
 import defs.Dataset;
@@ -23,7 +25,7 @@ import defs.InvalidModelException;
 import defs.NonConvergeException;
 import defs.ParamModelMismatchException;
 import defs.Params;
-import defs.Result;
+import defs.Model;
 import defs.SoRecParams;
 import defs.SocBIT_Params;
 
@@ -59,15 +61,15 @@ public class Experiment {
 //		int minK = gt_numTopic; int maxK = gt_numTopic;	// for fast testing
 		for (int numTopic = minK; numTopic <=  maxK; numTopic++) {
 			
-			Result soRec_result = trainBySoRec(train_ds, numTopic);
-			Result socBIT_result = trainBySocBIT(train_ds, numTopic);
-			allErrStr += numTopic + "," + soRec_result.toErrString() + "," + socBIT_result.toErrString() + "\n";
+			Model soRec = trainBySoRec(train_ds, numTopic);
+			Model socBIT = trainBySocBIT(train_ds, numTopic);
+			allErrStr += numTopic + "," + soRec.toErrString() + "," + socBIT.toErrString() + "\n";
 			
-			saveLearnedParams(soRec_result, socBIT_result, numTopic, resDir);
+			saveLearnedParams(soRec, socBIT, numTopic, resDir);
 
 			if (numTopic == gt_numTopic) {
-				predict(soRec_result.learnedParams, test_ds);
-				predict(socBIT_result.learnedParams, test_ds);
+				double test_rmse_soRec = predict(soRec, test_ds);
+				double test_rmse_socBIT = predict(socBIT, test_ds);
 				
 //				String paramErr = getParamErr(socBIT_params, ste_params, bSTE_params, gt_params);
 //				String fParamErr = errDir + "param_learn_err.csv" ;
@@ -129,24 +131,24 @@ public class Experiment {
 		return trainer;
 	}
 
-	private static Result trainBySoRec(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
+	private static Model trainBySoRec(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
 		
 		System.out.println("Training by soRec model");
 		Trainer trainer = initTrainer("soRec", ds, numTopic);
 		SoRecParams initParams = new SoRecParams(ds.numUser, ds.numItem, numTopic);
-		Result result = trainer.gradDescent(initParams);
+		Model result = trainer.gradDescent(initParams);
 		
 		return result;
 	}
 	
-	private static Result trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
+	private static Model trainBySocBIT(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		System.out.println("Training by socBIT model");
 		
 		Trainer trainer = initTrainer("socBIT", ds, numTopic);	// currently training on whole data set, switch to training set later	
 		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
 		System.out.println("iter, obj_value (rating + regs + edge_weight_errors), rating errors");
-		Result result = trainer.gradDescent(initParams);
+		Model result = trainer.gradDescent(initParams);
 		return result;
 	}
 	
@@ -155,11 +157,55 @@ public class Experiment {
 	 * evaluation metrics
 	 * @param params
 	 * @param test_ds
+	 * @return 
 	 */
-	private static void predict(Params params, Dataset test_ds) {
-		// TODO Auto-generated method stub
+	private static double predict(Model model, Dataset test_ds) {
+		
+		double rmse = 0;
+		
+		RealMatrix ratings = test_ds.ratings;
+		RealMatrix errMat = null;
+		RecSysCal calculator = model.calculator;
+		if (calculator instanceof SoRec_Cal) {
+			SoRec_Cal soRec_Cal = (SoRec_Cal) calculator;
+			RealMatrix estRatings = soRec_Cal.estRatings(model.learnedParams);
+			errMat = soRec_Cal.calRatingErrors(estRatings, ratings);
+		}
+		if (calculator instanceof SocBIT_Cal) {
+			SocBIT_Cal socBIT_Cal = (SocBIT_Cal) calculator;
+			RealMatrix estRatings = socBIT_Cal.estRatings(model.learnedParams);
+			errMat = socBIT_Cal.calRatingErrors(estRatings, ratings);
+		}
+		
+		int numRating = count(ratings);
+		rmse = calRMSE(errMat, numRating);
+		return rmse;
+	}
+
+	private static double calRMSE(RealMatrix errMat, int numErr) {
+		double rmse;
+		double mse = UtilFuncs.sqFrobNorm(errMat)/numErr;
+		rmse = Math.sqrt(mse);
+		return rmse;
 	}
 	
+	/**
+	 * @param matrix
+	 * @return number of non-NA entries
+	 */
+	private static int count(RealMatrix matrix) {
+		
+		int c = 0;
+		for (int i = 0; i < matrix.getRowDimension(); i++) {
+			for (int j = 0; j < matrix.getColumnDimension(); j++) {
+				if (matrix.getEntry(i, j) != -1) {// non-NA
+					c++;
+				}
+			}
+		}
+		return c;
+	}
+
 	private static String concat(String model, Errors errors) {
 		return model + "," + 	errors.toString();
 	}
@@ -204,7 +250,7 @@ public class Experiment {
 		return allErrStr;
 	}
 
-	private static void saveLearnedParams(Result soRec_result, Result socBIT_result, int numTopic, String resDir)
+	private static void saveLearnedParams(Model soRec_result, Model socBIT_result, int numTopic, String resDir)
 			throws IOException {
 		
 		String model = "soRec";
@@ -232,19 +278,19 @@ public class Experiment {
 	}
 
 	@SuppressWarnings("unused")
-	private static Result trainByBSTE(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
+	private static Model trainByBSTE(Dataset ds, int numTopic) throws InvalidModelException, IOException, ParamModelMismatchException, NonConvergeException {
 		
 		System.out.println("Training by bSTE model...");
 		Trainer trainer = initTrainer("bSTE", ds, numTopic);
 		
 		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
 		System.out.println("iter, obj_value (rating + regs), rating errors");
-		Result result = trainer.gradDescent(initParams);
+		Model result = trainer.gradDescent(initParams);
 		return result;
 	}
 	
 	@SuppressWarnings("unused")
-	private static Result trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
+	private static Model trainBySTE(Dataset ds, int numTopic) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		System.out.println("Training by STE model...");
 		
@@ -252,7 +298,7 @@ public class Experiment {
 		Params initParams = new Params(ds.numUser, ds.numItem, trainer.numTopic);
 		initParams.createFeatsUniformly();
 		System.out.println("iter, obj_value (rating + regs), rating errors");
-		Result result = trainer.gradDescent(initParams);
+		Model result = trainer.gradDescent(initParams);
 		
 		return result;
 	}
