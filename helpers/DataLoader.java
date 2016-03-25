@@ -78,8 +78,15 @@ public class DataLoader {
 		return edge_weights;
 	}
 	
+	/**
+	 * read ratings from file and mark missing/NA ratings by -1
+	 * @param fname
+	 * @return
+	 * @throws IOException
+	 */
 	private static RealMatrix loadRatings(String fname) throws IOException {
 		RealMatrix ratings = new Array2DRowRealMatrix(maxNumUser, maxNumItem);
+		ratings = ratings.scalarAdd(-1);	// mark missing ratings by -1
 		
 		BufferedReader reader = new BufferedReader(new FileReader(fname));
 		String line = reader.readLine();	// skip header
