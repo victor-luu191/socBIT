@@ -17,7 +17,7 @@ import defs.InvalidModelException;
 import defs.NonConvergeException;
 import defs.ParamModelMismatchException;
 import defs.Params;
-import defs.Result;
+import defs.Model;
 import defs.SoRecParams;
 import defs.SocBIT_Params;
 
@@ -54,7 +54,7 @@ public class Trainer {
 	 * @throws IOException, InvalidModelException and  ParamModelMismatchException
 	 * @throws NonConvergeException 
 	 */
-	Result gradDescent(Params initParams) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
+	Model trainByGD(Params initParams) throws IOException, InvalidModelException, ParamModelMismatchException, NonConvergeException {
 		
 		int numIter = 0;
 		Params cParams = buildParams(initParams, model);
@@ -102,7 +102,7 @@ public class Trainer {
 		
 		Optional<Double> edgeWeightErr =  Optional.empty();
 		edgeWeightErr = Optional.of(getEdgeWeightErr(cParams));
-		return new Result(cParams, ratingError, edgeWeightErr, cValue);
+		return new Model(cParams, calculator, ratingError, edgeWeightErr, cValue);
 	}
 	
 
