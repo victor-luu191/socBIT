@@ -136,7 +136,7 @@ public class Experiment {
 		System.out.println("Training by soRec model");
 		Trainer trainer = initTrainer("soRec", ds, numTopic);
 		SoRecParams initParams = new SoRecParams(ds.numUser, ds.numItem, numTopic);
-		Model result = trainer.gradDescent(initParams);
+		Model result = trainer.trainByGD(initParams);
 		
 		return result;
 	}
@@ -148,7 +148,7 @@ public class Experiment {
 		Trainer trainer = initTrainer("socBIT", ds, numTopic);	// currently training on whole data set, switch to training set later	
 		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
 		System.out.println("iter, obj_value (rating + regs + edge_weight_errors), rating errors");
-		Model result = trainer.gradDescent(initParams);
+		Model result = trainer.trainByGD(initParams);
 		return result;
 	}
 	
@@ -285,7 +285,7 @@ public class Experiment {
 		
 		SocBIT_Params initParams = new SocBIT_Params(ds.numUser, ds.numItem, ds.numBrand, trainer.numTopic);
 		System.out.println("iter, obj_value (rating + regs), rating errors");
-		Model result = trainer.gradDescent(initParams);
+		Model result = trainer.trainByGD(initParams);
 		return result;
 	}
 	
@@ -298,7 +298,7 @@ public class Experiment {
 		Params initParams = new Params(ds.numUser, ds.numItem, trainer.numTopic);
 		initParams.createFeatsUniformly();
 		System.out.println("iter, obj_value (rating + regs), rating errors");
-		Model result = trainer.gradDescent(initParams);
+		Model result = trainer.trainByGD(initParams);
 		
 		return result;
 	}
