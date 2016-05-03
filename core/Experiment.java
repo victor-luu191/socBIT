@@ -165,9 +165,9 @@ public class Experiment {
 		System.out.println("Loaded train ds = (ratings and the graph)");
 		
 		// XXX: tmp turn off for synExp, as synExp currently run on whole ds
-//		String test_file = dataDir +  "test_ratings.csv";	// splitIndex + "_split/" +
-//		test_ratings = loader.loadRatings(test_file);
-//		System.out.println("Loaded test ratings");
+		String test_file = dataDir +  "test_ratings.csv";	// splitIndex + "_split/" +
+		test_ratings = loader.loadRatings(test_file);
+		System.out.println("Loaded test ratings");
 		
 	}
 
