@@ -13,51 +13,67 @@ import defs.Dataset;
 
 public class DataLoader {
 	
-	private static int maxNumUser = 2000;
-	private static int maxNumItem = 2000;
-	private static Map<String, Integer> userIndex;
-	private static Map<String, Integer> itemIndex ;
+	private Map<String, Integer> userIndex;
+	private Map<String, Integer> itemIndex ;
+	private Map<String, Integer> brandIndex;
 	
-	private static void loadIndices(String dir) throws IOException {
-		userIndex = loadIndex(dir + "user_index.csv");
-		System.out.println("loaded index of users");
-		itemIndex = loadIndex(dir + "item_index.csv");
-		System.out.println("loaded index of items");
+	public DataLoader(String dataDir) throws IOException {
+		loadIndices(dataDir);
+	}
+
+	private void loadIndices(String dataDir) throws IOException {
+		userIndex = loadIndex(dataDir + "user_index.csv");
+		System.out.println("loaded index of " + userIndex.size() + " users");
+		itemIndex = loadIndex(dataDir + "item_index.csv");
+		System.out.println("loaded index of " + itemIndex.size() + " items");
+
+		// XXX: on synthetic data, we do not load index of brands, smth is wrong here, tmp turn off this but need to handle later 
+//		brandIndex = loadIndex(dataDir + "brand_index.tsv");
+//		System.out.println("loaded index of " + brandIndex.size() + " brands");
 	}
 	
-	private static Map<String, Integer> loadIndex(String fName) throws IOException {
+	private Map<String, Integer> loadIndex(String fName) throws IOException {
 		
 		HashMap<String, Integer> index = new HashMap<String, Integer>();
 		BufferedReader reader = new BufferedReader(new FileReader(fName));
+		
+		int numFail2Parse = 0;
 		String line = reader.readLine();
 		while ((line = reader.readLine()) != null) {
-			String[] fields = line.split(",");
+			String[] fields = line.split(",|\t");
 			String id = fields[0];
-			int ind = toJavaIndex(Integer.parseInt(fields[1]));
-			index.put(id, ind);
+			try {
+				int normalIndex = Integer.parseInt(fields[1]);
+				int ind = toJavaIndex(normalIndex);
+				index.put(id, ind);
+			} catch (NumberFormatException e) {
+				//  handle exception
+				numFail2Parse ++;
+			}
 			
 		}
 		reader.close();
-		
+		System.out.println("number of entries of which index cannot be parsed " + numFail2Parse);
 		return index;
 	}
 
-	private static int toJavaIndex(int ind) {
-		return ind - 1;
-	}
-
-	public static Dataset load(String dir, int numBrand, int splitIndex, String rating_file) throws IOException {
+	public Dataset load(String rating_file, String graph_file) throws IOException {
 		
-		loadIndices(dir);
 		RealMatrix ratings = loadRatings(rating_file);	// 
-		RealMatrix edge_weights = loadEdgeWeights(dir + "edge_weights.csv");
+		
+		RealMatrix edge_weights = loadEdgeWeights(graph_file);
+//		int numBrand = brandIndex.size();
+		//XXX: use this hard setting only for syn data
+		int numBrand = 46; // 9K + 1
 		return new Dataset(ratings, edge_weights, numBrand);
 	}
 
 	// read edge weights from the file and fill in 0s for user pairs with no connection
-	private static RealMatrix loadEdgeWeights(String fname) throws NumberFormatException, IOException {
+	private RealMatrix loadEdgeWeights(String fname) throws NumberFormatException, IOException {
 		
-		RealMatrix edge_weights = new Array2DRowRealMatrix(maxNumUser, maxNumUser);
+//		System.out.println("loading edge weights...");
+		int numUser = userIndex.size();
+		RealMatrix edge_weights = new Array2DRowRealMatrix(numUser, numUser);
 		BufferedReader reader = new BufferedReader(new FileReader(fname));
 		String line = reader.readLine();	// skip header
 		while ((line = reader.readLine()) != null) {
@@ -66,26 +82,29 @@ public class DataLoader {
 			String vid = fields[1];
 			double weight = Double.valueOf(fields[2]);
 			
-			int uIndex = userIndex.get(uid);
-			int vIndex = userIndex.get(vid);
-			edge_weights.setEntry(uIndex, vIndex, weight);
+			if (inUserIndex(uid) && inUserIndex(vid)) {
+				int uIndex = userIndex.get(uid);
+				int vIndex = userIndex.get(vid);
+				edge_weights.setEntry(uIndex, vIndex, weight);
+			}
 		}
 		reader.close();
-		int numUser = userIndex.size();
-		edge_weights = edge_weights.getSubMatrix(0, numUser - 1, 0, numUser - 1);	// rm redundant rows and cols
-		System.out.println("Loaded all edge weights.");
 
 		return edge_weights;
 	}
-	
+
 	/**
 	 * read ratings from file and mark missing/NA ratings by -1
 	 * @param fname
 	 * @return
 	 * @throws IOException
 	 */
-	private static RealMatrix loadRatings(String fname) throws IOException {
-		RealMatrix ratings = new Array2DRowRealMatrix(maxNumUser, maxNumItem);
+	public RealMatrix loadRatings(String fname) throws IOException {
+		
+//		System.out.println("loading ratings...");
+		int numUser = userIndex.size();
+		int numItem = itemIndex.size();
+		RealMatrix ratings = new Array2DRowRealMatrix(numUser, numItem);
 		ratings = ratings.scalarAdd(-1);	// mark missing ratings by -1
 		
 		BufferedReader reader = new BufferedReader(new FileReader(fname));
@@ -102,17 +121,18 @@ public class DataLoader {
 		}
 		
 		reader.close();
-		int numUser = userIndex.size();
-		int numItem = itemIndex.size();
-		System.out.println("numUser = " + numUser  + ", numItem = " + numItem);
-		ratings = ratings.getSubMatrix(0, numUser - 1, 0, numItem - 1);		// rm redundant rows and cols
-		System.out.println("Loaded all ratings.");
-//		System.out.println("First row of ratings: ");
-//		System.out.println(ratings.getRowVector(0).toString());
-//		System.out.println();
+
 		return ratings;
 	}
 
+	private int toJavaIndex(int ind) {
+		return ind - 1;
+	}
+	
+	private boolean inUserIndex(String uid) {
+		return userIndex.keySet().contains(uid);
+	}
+	
 	/**
 	 * Look up the index corresponding to the specified {@link id} if {@link id} can be found in the map {@link id2Index}, 
 	 * Otherwise add the {@link id} to the map and increment the map {@link size} 
@@ -122,7 +142,7 @@ public class DataLoader {
 	 * @return
 	 */
 	@SuppressWarnings("unused")
-	private static int lookUpIndex(String id, Map<String, Integer> id2Index) {
+	private  int lookUpIndex(String id, Map<String, Integer> id2Index) {
 		
 		if (id2Index.containsKey(id)) {
 			return id2Index.get(id);

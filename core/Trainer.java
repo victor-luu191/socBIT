@@ -37,6 +37,7 @@ public class Trainer {
 	private int maxIter;
 	private double stepSize;
 	private RecSysCal calculator;
+	private int numRating;
 	
 	public Trainer(String model, Dataset ds, int numTopic, Hypers hypers, int maxIter) throws InvalidModelException {
 		this.model = model;
@@ -45,6 +46,8 @@ public class Trainer {
 		this.hypers = hypers;
 		this.maxIter = maxIter;
 		calculator = buildCalculator(model);
+		int na_marker = -1;
+		numRating = UtilFuncs.numNeq(ds.ratings, na_marker);
 	}
 	
 	/**
@@ -58,20 +61,26 @@ public class Trainer {
 		
 		int numIter = 0;
 		Params cParams = buildParams(initParams, model);
+		long beginObjCal = System.currentTimeMillis();
 		double cValue = calculator.objValue(initParams);
+		long elapsedObjCal = System.currentTimeMillis() - beginObjCal;
+		System.out.println("computing obj value takes " + TimeUtil.toSecond(elapsedObjCal) + "s");
 		
-		double ratingError = getRatingError(cParams);
+		double totalRatingError = calTotalRatingError(cParams);
+		double rating_rmse = toRMSE(totalRatingError);
 		
-		System.out.println("iter, objValue, ratingErr");
-		System.out.println(numIter + ", " + cValue + "," + ratingError);
+		System.out.println("iter, objValue, rating_rmse");
+		System.out.println(numIter + ", " + cValue + "," + rating_rmse);
 		double difference = Double.POSITIVE_INFINITY;
 		
 		GradCal gradCal = buildGradCal(model);
 		// while not convergence and still can try more
 		while ( isLarge(difference) && (numIter < maxIter) ) {
 			numIter ++;
+			long beginGradCal = System.currentTimeMillis();
 			Params cGrad = gradCal.calculate(cParams);
-
+			long elapsedGradCal = System.currentTimeMillis() - beginGradCal;
+			System.out.println("computing gradient takes " + TimeUtil.toSecond(elapsedGradCal) + "s");
 			
 			Params nParams = lineSearch(cParams, cGrad, cValue);
 			double nValue = calculator.objValue(nParams);
@@ -81,8 +90,9 @@ public class Trainer {
 			// prep for next iter
 			cParams = buildParams(nParams, model);						
 			cValue = nValue;
-			ratingError = getRatingError(cParams);
-			System.out.println(numIter + "," + cValue + ", " + ratingError);
+			totalRatingError = calTotalRatingError(cParams);
+			rating_rmse = toRMSE(totalRatingError);
+			System.out.println(numIter + "," + cValue + ", " + rating_rmse);
 		}
 		
 		if (!isLarge(difference)) {
@@ -100,9 +110,24 @@ public class Trainer {
 			System.out.println(msg);
 		}
 		
-		Optional<Double> edgeWeightErr =  Optional.empty();
-		edgeWeightErr = Optional.of(getEdgeWeightErr(cParams));
-		return new Model(cParams, calculator, ratingError, edgeWeightErr, cValue);
+		rating_rmse = toRMSE(totalRatingError);
+		
+//		Optional<Double> edgeWeightErr =  Optional.empty();
+//		edgeWeightErr = Optional.of(getEdgeWeightErr(cParams));
+		
+		Double edgeWeightErr = getEdgeWeightErr(cParams);
+		
+		int numUser = ds.numUser;
+		int numWeights = numUser*(numUser - 1);
+		Double trust_rmse = Math.sqrt(edgeWeightErr/numWeights);
+		
+		return new Model(cParams, calculator, rating_rmse, Optional.of(trust_rmse), cValue);
+	}
+
+	private double toRMSE(double sqRatingError) {
+			
+		double train_rmse = Math.sqrt(sqRatingError/numRating);
+		return train_rmse;
 	}
 	
 
@@ -121,8 +146,9 @@ public class Trainer {
 		
 		return UtilFuncs.sqFrobNorm(edgeWeightErrors);
 	}
+	
 
-	private double getRatingError(Params params) {
+	private double calTotalRatingError(Params params) {
 		RealMatrix rating_errors = calculator.calRatingErrors(params);
 		double sqError = square(rating_errors.getFrobeniusNorm());
 		return sqError;

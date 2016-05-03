@@ -58,4 +58,23 @@ public class UtilFuncs {
 		
 		return square(matrix.getFrobeniusNorm());
 	}
+	
+	/**
+	 * @param matrix
+	 * @param val: can be a marker for NA entries 
+	 * @return number of entries not equal to {@code val}
+	 * can be used to count number of non-NA if val is a marker for NA entries
+	 */
+	public static int numNeq(RealMatrix matrix, double val) {
+		
+		int c = 0;
+		for (int i = 0; i < matrix.getRowDimension(); i++) {
+			for (int j = 0; j < matrix.getColumnDimension(); j++) {
+				if (matrix.getEntry(i, j) != val) {
+					c++;
+				}
+			}
+		}
+		return c;
+	}
 }

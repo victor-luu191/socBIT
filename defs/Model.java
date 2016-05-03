@@ -8,23 +8,24 @@ public class Model {
 	
 	public Params learnedParams;
 	public RecSysCal calculator; // or estimator
+	
 	// residuals
-	public double ratingErr;
-	public double edgeWeightErr;
+	public double rating_rmse;
+	public double trust_rmse;
 	
 	public double objValue;
 	
-	public Model(Params learnedParams, RecSysCal calculator, double ratingErr, Optional<Double> optEdgeWeightErr, double objValue) {
+	public Model(Params learnedParams, RecSysCal calculator, double rating_rmse, Optional<Double> optTrust_rmse, double objValue) {
 		this.learnedParams = learnedParams;
 		this.calculator = calculator;
 		
-		this.ratingErr = ratingErr;
-		this.edgeWeightErr = optEdgeWeightErr.orElse(Double.NaN);
+		this.rating_rmse = rating_rmse;
+		this.trust_rmse = optTrust_rmse.orElse(Double.NaN);
 		this.objValue = objValue;
 	}
 
 	public String toErrString() {
-		return ratingErr + "," + edgeWeightErr + "," + objValue;
+		return rating_rmse + "," + trust_rmse + "," + objValue;
 	}
 	
 }
